@@ -23,9 +23,15 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
     const auth = useAuthStore()
-    if (!to.meta.public && !auth.token) {
+
+    // Restore session from localStorage on first navigation
+    if (!auth.initialized) {
+        await auth.init()
+    }
+
+    if (!to.meta.public && !auth.isLoggedIn) {
         return { name: 'login' }
     }
     if (to.meta.requiresAdmin && auth.user?.role !== 'admin') {

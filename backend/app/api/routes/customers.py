@@ -151,6 +151,7 @@ async def upload_kundali(
         delete_upload(customer.kundali_file_path)
 
     customer.kundali_file_path = await save_kundali(file)
+    customer.kundali_original_name = file.filename
     customer.updated_at = datetime.utcnow()
     session.add(customer)
     await session.commit()

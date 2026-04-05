@@ -35,6 +35,13 @@ async def login(body: LoginRequest, session: AsyncSession = Depends(get_session)
     return TokenResponse(access_token=token)
 
 
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(current_user: User = Depends(get_current_user)):
+    """Issue a fresh token for an authenticated user (extends session)."""
+    token = create_access_token({"sub": str(current_user.id), "role": current_user.role.value})
+    return TokenResponse(access_token=token)
+
+
 @router.post("/register", response_model=UserRead)
 async def register(
     body: UserCreate,

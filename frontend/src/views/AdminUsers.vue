@@ -6,7 +6,7 @@
         <p class="text-gray-500 text-sm mt-1">{{ users.length }} user{{ users.length !== 1 ? 's' : '' }}</p>
       </div>
       <button @click="openCreateModal"
-        class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 flex items-center gap-1.5">
+        class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         New User
       </button>
@@ -30,13 +30,13 @@
 
     <!-- Filters -->
     <div class="flex gap-3 mb-4">
-      <select v-model="filterRole" class="px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+      <select v-model="filterRole" class="form-select py-1.5">
         <option value="">All Roles</option>
         <option value="admin">Admin</option>
         <option value="astrologer">Astrologer</option>
         <option value="receptionist">Receptionist</option>
       </select>
-      <select v-model="filterActive" class="px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+      <select v-model="filterActive" class="form-select py-1.5">
         <option value="">All Status</option>
         <option value="true">Active</option>
         <option value="false">Inactive</option>
@@ -84,11 +84,11 @@
             <td class="px-4 py-3 text-right">
               <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click="openEditModal(u)" title="Edit"
-                  class="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600">
+                  class="btn-icon-amber">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
                 <button v-if="u.is_active" @click="confirmDeactivate(u)" title="Deactivate"
-                  class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600">
+                  class="btn-icon-red">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                 </button>
               </div>
@@ -109,26 +109,26 @@
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Email *</label>
             <input v-model="form.email" type="email" required
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+              class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">{{ editingUser ? 'New Password (leave blank to keep)' : 'Password *' }}</label>
             <input v-model="form.password" type="password" :required="!editingUser"
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+              class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
             <input v-model="form.full_name"
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+              class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Phone</label>
             <input v-model="form.phone"
-              class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+              class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Role</label>
-            <select v-model="form.role" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+            <select v-model="form.role" class="form-select w-full">
               <option value="admin">Admin</option>
               <option value="astrologer">Astrologer</option>
               <option value="receptionist">Receptionist</option>
@@ -141,9 +141,9 @@
           <div v-if="error" class="bg-red-50 text-red-700 text-sm p-3 rounded-lg">{{ error }}</div>
           <div class="flex gap-3 justify-end pt-2">
             <button type="button" @click="showModal = false"
-              class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              class="btn-secondary">Cancel</button>
             <button type="submit" :disabled="saving"
-              class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
+              class="btn-primary">
               {{ saving ? 'Saving...' : (editingUser ? 'Update' : 'Create') }}
             </button>
           </div>
@@ -165,9 +165,9 @@
         </div>
         <p class="text-sm text-gray-600 mb-4">Are you sure you want to deactivate <strong>{{ deactivateTarget.full_name || deactivateTarget.email }}</strong>?</p>
         <div class="flex gap-3 justify-end">
-          <button @click="deactivateTarget = null" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+          <button @click="deactivateTarget = null" class="btn-secondary">Cancel</button>
           <button @click="handleDeactivate" :disabled="deactivating"
-            class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+            class="btn-danger">
             {{ deactivating ? 'Deactivating...' : 'Deactivate' }}
           </button>
         </div>
@@ -177,8 +177,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import { listUsers, createUser, updateUser, deactivateUser, getAdminStats } from '@/api/admin'
+
+const confirm = inject('confirm')
 import dayjs from 'dayjs'
 
 const users = ref([])

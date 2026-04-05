@@ -79,6 +79,7 @@ class CustomerRead(BaseModel):
 
     photo_path: Optional[str] = None
     kundali_file_path: Optional[str] = None
+    kundali_original_name: Optional[str] = None
 
     notes: Optional[str] = None
     is_active: bool

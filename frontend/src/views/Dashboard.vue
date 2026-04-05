@@ -5,8 +5,15 @@
         <h1 class="text-2xl font-bold">Dashboard</h1>
         <p class="text-gray-500 text-sm mt-1">Welcome back, {{ auth.user?.full_name || 'Astrologer' }}</p>
       </div>
-      <div class="flex gap-2">
-        <router-link to="/customers/new" class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 flex items-center gap-1.5">
+      <div class="flex gap-2 items-center">
+        <!-- Date range filter -->
+        <select v-model="dateRange" @change="loadAll" class="form-select py-2">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last year</option>
+        </select>
+        <router-link to="/customers/new" class="btn-primary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
           New Customer
         </router-link>
@@ -17,8 +24,8 @@
       </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Summary Cards - 6 KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
       <div v-for="card in cards" :key="card.label" class="bg-white rounded-xl shadow-sm p-5 border hover:shadow-md transition-shadow">
         <div class="flex items-start justify-between">
           <div>
@@ -37,7 +44,7 @@
       <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Earnings Overview</h2>
-          <select v-model="period" @change="loadEarnings" class="border rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500">
+          <select v-model="period" @change="loadEarnings" class="form-select py-1.5">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -134,16 +141,16 @@
         <div class="bg-white rounded-xl shadow-sm border p-5">
           <h2 class="text-lg font-semibold mb-3">Quick Actions</h2>
           <div class="grid grid-cols-2 gap-2">
-            <router-link to="/customers/new" class="flex items-center gap-2 p-3 rounded-lg border hover:bg-primary-50 hover:border-primary-200 transition-colors text-sm">
+            <router-link to="/customers/new" class="action-link">
               <span>👤</span> Add Customer
             </router-link>
-            <router-link to="/visits/new" class="flex items-center gap-2 p-3 rounded-lg border hover:bg-primary-50 hover:border-primary-200 transition-colors text-sm">
+            <router-link to="/visits/new" class="action-link">
               <span>🗓</span> Record Visit
             </router-link>
-            <router-link to="/solutions/new" class="flex items-center gap-2 p-3 rounded-lg border hover:bg-primary-50 hover:border-primary-200 transition-colors text-sm">
+            <router-link to="/solutions/new" class="action-link">
               <span>💎</span> Add Solution
             </router-link>
-            <router-link to="/templates/new" class="flex items-center gap-2 p-3 rounded-lg border hover:bg-primary-50 hover:border-primary-200 transition-colors text-sm">
+            <router-link to="/templates/new" class="action-link">
               <span>📧</span> New Template
             </router-link>
           </div>
@@ -169,6 +176,7 @@ const auth = useAuthStore()
 const summary = ref(null)
 const earnings = ref(null)
 const period = ref('monthly')
+const dateRange = ref('90')
 const recentVisits = ref([])
 const solutionStats = ref([])
 const paymentStats = ref(null)
@@ -182,9 +190,28 @@ const cards = computed(() => {
     { label: 'Total Customers', value: s.total_customers, icon: '👥', iconBg: 'bg-blue-50', sub: `${s.active_customers} active`, subColor: 'text-blue-500' },
     { label: 'Visits This Month', value: s.visits_this_month, icon: '🗓', iconBg: 'bg-emerald-50', sub: `${s.new_customers_this_month} new customers`, subColor: 'text-emerald-500' },
     { label: 'Revenue This Month', value: `₹${Number(s.revenue_this_month).toLocaleString()}`, icon: '💰', iconBg: 'bg-amber-50', sub: 'Paid visits only', subColor: 'text-gray-400' },
-    { label: 'Pending Payments', value: `₹${Number(s.pending_payments).toLocaleString()}`, icon: '⏳', iconBg: 'bg-red-50', sub: 'Needs follow-up', subColor: s.pending_payments > 0 ? 'text-red-500' : 'text-gray-400' },
+    { label: 'Pending Payments', value: `₹${Number(s.pending_payments).toLocaleString()}`, icon: '⌛', iconBg: 'bg-red-50', sub: 'Needs follow-up', subColor: s.pending_payments > 0 ? 'text-red-500' : 'text-gray-400' },
+    { label: 'Avg Fee/Visit', value: avgFee.value, icon: '📈', iconBg: 'bg-purple-50', sub: 'Based on all visits', subColor: 'text-purple-500' },
+    { label: 'Collection Rate', value: collectionRate.value, icon: '✅', iconBg: 'bg-teal-50', sub: 'Paid / Total', subColor: 'text-teal-500' },
   ]
 })
+
+const avgFee = computed(() => {
+  if (!paymentStats.value) return '₹0'
+  const total = paymentStats.value.paid + paymentStats.value.pending + paymentStats.value.partial + paymentStats.value.waived
+  if (total === 0) return '₹0'
+  const totalFees = allVisits.value.reduce((s, v) => s + Number(v.fees || 0), 0)
+  return `₹${Math.round(totalFees / total).toLocaleString()}`
+})
+
+const collectionRate = computed(() => {
+  if (!paymentStats.value) return '0%'
+  const total = paymentStats.value.paid + paymentStats.value.pending + paymentStats.value.partial + paymentStats.value.waived
+  if (total === 0) return '0%'
+  return Math.round((paymentStats.value.paid / total) * 100) + '%'
+})
+
+const allVisits = ref([])
 
 const chartData = computed(() => {
   if (!earnings.value?.breakdown?.length) return null
@@ -226,7 +253,7 @@ async function loadSummary() {
 }
 
 async function loadEarnings() {
-  const { data } = await getDashboardEarnings({ period: period.value, days: 90 })
+  const { data } = await getDashboardEarnings({ period: period.value, days: Number(dateRange.value) })
   earnings.value = data
 }
 
@@ -255,6 +282,7 @@ async function loadPaymentStats() {
   try {
     const { data } = await listVisits({})
     const visits = Array.isArray(data) ? data : []
+    allVisits.value = visits
     paymentStats.value = {
       paid: visits.filter(v => v.payment_status === 'paid').length,
       pending: visits.filter(v => v.payment_status === 'pending').length,
@@ -264,11 +292,13 @@ async function loadPaymentStats() {
   } catch { paymentStats.value = null }
 }
 
-onMounted(() => {
+function loadAll() {
   loadSummary()
   loadEarnings()
   loadRecentVisits()
   loadSolutionStats()
   loadPaymentStats()
-})
+}
+
+onMounted(loadAll)
 </script>

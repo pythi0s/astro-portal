@@ -1,1 +1,35 @@
-alembic/versions/*.pyc
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+
+# Environment
+.env
+backend/.env
+
+# Build
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data
+backups/
+uploads/
+*.sql.gz
+
+# SSL certs (sensitive)
+nginx/ssl/*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+*.egg-info/
+uv.lock

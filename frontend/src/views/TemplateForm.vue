@@ -6,19 +6,19 @@
       <div class="bg-white rounded-xl border p-5 space-y-4">
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Name *</label>
-          <input v-model="form.name" required class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <input v-model="form.name" required class="form-input" />
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Channel</label>
-            <select v-model="form.channel" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.channel" class="form-select w-full">
               <option value="email">Email</option>
               <option value="whatsapp">WhatsApp</option>
             </select>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Trigger Type</label>
-            <select v-model="form.trigger_type" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.trigger_type" class="form-select w-full">
               <option value="first_visit">First Visit</option>
               <option value="follow_up">Follow Up</option>
               <option value="solution_given">Solution Given</option>
@@ -28,11 +28,11 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Subject (email only)</label>
-          <input v-model="form.subject" class="w-full px-3 py-2 border rounded-lg text-sm" />
+          <input v-model="form.subject" class="form-input" />
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Body *</label>
-          <textarea v-model="form.body" rows="6" required class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+          <textarea v-model="form.body" rows="6" required class="form-input"></textarea>
           <p class="text-xs text-gray-400 mt-1">
             Available placeholders: {{ '{{customer_name}}' }}, {{ '{{customer_email}}' }}, {{ '{{customer_phone}}' }}
           </p>
@@ -41,10 +41,10 @@
 
       <div class="flex gap-3">
         <button type="submit" :disabled="saving"
-          class="bg-primary-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
+          class="btn-primary px-6">
           {{ saving ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
         </button>
-        <button type="button" @click="$router.back()" class="px-6 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+        <button type="button" @click="$router.back()" class="btn-secondary px-6">Cancel</button>
       </div>
     </form>
   </div>

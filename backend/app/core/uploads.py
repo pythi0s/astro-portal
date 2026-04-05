@@ -26,8 +26,11 @@ async def save_upload(file: UploadFile, subfolder: str, max_size: int, allowed_t
             detail=f"File too large. Max size: {max_size // (1024 * 1024)} MB",
         )
 
-    ext = os.path.splitext(file.filename or "file")[1]
-    filename = f"{uuid.uuid4().hex}{ext}"
+    # Keep original filename but prefix with short UUID for uniqueness
+    original = file.filename or "file"
+    # Sanitize: keep only alphanumeric, dots, hyphens, underscores
+    safe_name = "".join(ch if ch.isalnum() or ch in ".-_" else "_" for ch in original)
+    filename = f"{uuid.uuid4().hex[:8]}_{safe_name}"
     dir_path = os.path.join(settings.upload_dir, subfolder)
     os.makedirs(dir_path, exist_ok=True)
 

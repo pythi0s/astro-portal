@@ -41,6 +41,7 @@ class Customer(SQLModel, table=True):
     # Files
     photo_path: Optional[str] = None
     kundali_file_path: Optional[str] = None
+    kundali_original_name: Optional[str] = None
 
     # Meta
     notes: Optional[str] = None

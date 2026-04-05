@@ -8,18 +8,18 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
-            <select v-model="form.customer_id" required class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.customer_id" required class="form-select w-full">
               <option value="">Select customer...</option>
               <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.phone || c.email || c.id }})</option>
             </select>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Visit Date</label>
-            <input v-model="form.visit_date" type="date" class="w-full px-3 py-2 border rounded-lg text-sm" />
+            <input v-model="form.visit_date" type="date" class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Consultation Type</label>
-            <select v-model="form.consultation_type" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.consultation_type" class="form-select w-full">
               <option value="first_visit">First Visit</option>
               <option value="follow_up">Follow Up</option>
               <option value="special">Special</option>
@@ -28,7 +28,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Follow-up Date</label>
-            <input v-model="form.follow_up_date" type="date" class="w-full px-3 py-2 border rounded-lg text-sm" />
+            <input v-model="form.follow_up_date" type="date" class="form-input" />
           </div>
         </div>
       </div>
@@ -37,15 +37,15 @@
         <h3 class="font-semibold text-gray-700">Consultation</h3>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Problems Discussed</label>
-          <textarea v-model="form.problems_discussed" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+          <textarea v-model="form.problems_discussed" rows="2" class="form-input"></textarea>
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Analysis</label>
-          <textarea v-model="form.analysis" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+          <textarea v-model="form.analysis" rows="2" class="form-input"></textarea>
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-600 mb-1">Recommendations</label>
-          <textarea v-model="form.recommendations" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+          <textarea v-model="form.recommendations" rows="2" class="form-input"></textarea>
         </div>
       </div>
 
@@ -54,11 +54,11 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Fees (₹)</label>
-            <input v-model="form.fees" type="number" min="0" step="0.01" class="w-full px-3 py-2 border rounded-lg text-sm" />
+            <input v-model="form.fees" type="number" min="0" step="0.01" class="form-input" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
-            <select v-model="form.payment_status" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.payment_status" class="form-select w-full">
               <option value="paid">Paid</option>
               <option value="pending">Pending</option>
               <option value="partial">Partial</option>
@@ -67,7 +67,7 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
-            <select v-model="form.payment_method" class="w-full px-3 py-2 border rounded-lg text-sm">
+            <select v-model="form.payment_method" class="form-select w-full">
               <option value="">—</option>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
@@ -91,15 +91,15 @@
 
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-        <textarea v-model="form.notes" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+        <textarea v-model="form.notes" rows="2" class="form-input"></textarea>
       </div>
 
       <div class="flex gap-3">
         <button type="submit" :disabled="saving"
-          class="bg-primary-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50">
+          class="btn-primary px-6">
           {{ saving ? 'Saving...' : 'Create Visit' }}
         </button>
-        <button type="button" @click="$router.back()" class="px-6 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+        <button type="button" @click="$router.back()" class="btn-secondary px-6">Cancel</button>
       </div>
     </form>
   </div>

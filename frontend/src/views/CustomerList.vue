@@ -1,20 +1,43 @@
 <template>
   <div>
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div class="bg-white rounded-xl border p-4 text-center">
+        <p class="text-2xl font-bold text-primary-600">{{ customers.length }}</p>
+        <p class="text-xs text-gray-500 mt-1">Total Customers</p>
+      </div>
+      <div class="bg-white rounded-xl border p-4 text-center">
+        <p class="text-2xl font-bold text-emerald-600">{{ newThisMonth }}</p>
+        <p class="text-xs text-gray-500 mt-1">New This Month</p>
+      </div>
+      <div class="bg-white rounded-xl border p-4 text-center">
+        <p class="text-2xl font-bold text-blue-600">{{ withEmail }}</p>
+        <p class="text-xs text-gray-500 mt-1">With Email</p>
+      </div>
+      <div class="bg-white rounded-xl border p-4 text-center">
+        <p class="text-2xl font-bold text-amber-600">{{ withPhone }}</p>
+        <p class="text-xs text-gray-500 mt-1">With Phone</p>
+      </div>
+    </div>
+
     <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="text-2xl font-bold">Customers</h1>
         <p class="text-gray-500 text-sm mt-1">{{ customers.length }} customer{{ customers.length !== 1 ? 's' : '' }} found</p>
       </div>
       <router-link to="/customers/new"
-        class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 flex items-center gap-1.5">
+        class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         New Customer
       </router-link>
     </div>
 
     <div class="mb-4">
-      <input v-model="search" @input="debouncedLoad" placeholder="Search by name, phone, email..."
-        class="w-full max-w-md px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+      <div class="search-wrap max-w-md">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <input v-model="search" @input="debouncedLoad" placeholder="Search by name, phone, email..."
+          class="search-input max-w-md" />
+      </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -32,7 +55,7 @@
           </tr>
         </thead>
         <tbody class="divide-y">
-          <tr v-for="c in customers" :key="c.id" class="hover:bg-gray-50 group">
+          <tr v-for="c in customers" :key="c.id" class="hover:bg-primary-50/30 group transition-colors duration-150">
             <td class="px-4 py-3">
               <img v-if="c.photo_path" :src="`/uploads/${c.photo_path}`" class="w-8 h-8 rounded-full object-cover" />
               <div v-else class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold">
@@ -50,15 +73,15 @@
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button @click="$router.push(`/customers/${c.id}`)" title="View"
-                  class="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600">
+                  class="btn-icon-blue">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                 </button>
                 <button @click="$router.push(`/customers/${c.id}/edit`)" title="Edit"
-                  class="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600">
+                  class="btn-icon-amber">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </button>
                 <button @click="confirmDelete(c)" title="Delete"
-                  class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600">
+                  class="btn-icon-red">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
@@ -73,41 +96,25 @@
         </tbody>
       </table>
     </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div v-if="deleteTarget" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="deleteTarget = null">
-      <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-4">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-          </div>
-          <div>
-            <h3 class="font-semibold">Delete Customer</h3>
-            <p class="text-sm text-gray-500">This action cannot be undone.</p>
-          </div>
-        </div>
-        <p class="text-sm text-gray-600 mb-4">Are you sure you want to delete <strong>{{ deleteTarget.name }}</strong>?</p>
-        <div class="flex gap-3 justify-end">
-          <button @click="deleteTarget = null" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
-          <button @click="handleDelete" :disabled="deleting" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-            {{ deleting ? 'Deleting...' : 'Delete' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import { listCustomers, deleteCustomer } from '@/api/customers'
 import dayjs from 'dayjs'
 
+const confirm = inject('confirm')
 const customers = ref([])
 const search = ref('')
-const deleteTarget = ref(null)
-const deleting = ref(false)
 let debounceTimer = null
+
+const newThisMonth = computed(() => {
+  const now = dayjs()
+  return customers.value.filter(c => dayjs(c.created_at).isSame(now, 'month')).length
+})
+const withEmail = computed(() => customers.value.filter(c => c.email).length)
+const withPhone = computed(() => customers.value.filter(c => c.phone).length)
 
 function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY') : '—' }
 
@@ -123,19 +130,17 @@ function debouncedLoad() {
   debounceTimer = setTimeout(load, 300)
 }
 
-function confirmDelete(customer) {
-  deleteTarget.value = customer
-}
-
-async function handleDelete() {
-  deleting.value = true
-  try {
-    await deleteCustomer(deleteTarget.value.id)
-    deleteTarget.value = null
-    await load()
-  } finally {
-    deleting.value = false
-  }
+async function confirmDelete(customer) {
+  const ok = await confirm({
+    title: 'Delete Customer',
+    subtitle: 'This action cannot be undone.',
+    message: `Are you sure you want to delete ${customer.name}?`,
+    type: 'danger',
+    confirmLabel: 'Delete',
+  })
+  if (!ok) return
+  await deleteCustomer(customer.id)
+  await load()
 }
 
 onMounted(load)
