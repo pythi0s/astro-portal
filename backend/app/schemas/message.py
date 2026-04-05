@@ -45,6 +45,12 @@ class SendEmailRequest(BaseModel):
     visit_id: Optional[int] = None
 
 
+class SendWhatsAppRequest(BaseModel):
+    customer_id: int
+    template_id: int
+    visit_id: Optional[int] = None
+
+
 class MessageLogRead(BaseModel):
     id: int
     customer_id: int

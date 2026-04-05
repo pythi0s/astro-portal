@@ -3,6 +3,11 @@
     <router-view />
   </div>
   <div v-else class="flex h-screen bg-gray-50">
+    <!-- Hover trigger strip (visible when sidebar is unpinned and closed) -->
+    <div v-if="!sidebarPinned && !sidebarOpen"
+      class="fixed inset-y-0 left-0 w-2 z-40 cursor-pointer"
+      @mouseenter="sidebarOpen = true"></div>
+
     <!-- Sidebar overlay (mobile / unpinned hover) -->
     <div v-if="sidebarOpen && !sidebarPinned" class="fixed inset-0 bg-black/20 z-30 lg:hidden" @click="sidebarOpen = false"></div>
 
@@ -20,7 +25,7 @@
     >
       <!-- Logo -->
       <div class="h-14 flex items-center border-b border-primary-600 px-4 gap-3 shrink-0">
-        <span class="text-xl">✨</span>
+        <span class="text-xl">\u2728</span>
         <span v-if="!sidebarCollapsed || !sidebarPinned || sidebarOpen" class="text-lg font-bold tracking-wide whitespace-nowrap">Astro Portal</span>
       </div>
 
@@ -37,7 +42,7 @@
 
       <!-- Sidebar controls -->
       <div class="p-2 border-t border-primary-600 flex items-center" :class="sidebarCollapsed && sidebarPinned && !sidebarOpen ? 'justify-center' : 'justify-between'">
-        <button v-if="!sidebarCollapsed || !sidebarPinned" @click="sidebarPinned = !sidebarPinned"
+        <button v-if="!sidebarCollapsed || !sidebarPinned" @click="togglePin"
           class="p-1.5 rounded-lg hover:bg-primary-600 transition-colors" :title="sidebarPinned ? 'Unpin sidebar' : 'Pin sidebar'">
           <svg class="w-4 h-4" :class="sidebarPinned ? 'text-white' : 'text-primary-300'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path v-if="sidebarPinned" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -58,8 +63,9 @@
       <!-- Top bar -->
       <header class="h-14 bg-white border-b flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm">
         <div class="flex items-center gap-3">
-          <!-- Hamburger for mobile / unpinned -->
-          <button v-if="!sidebarPinned" @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg hover:bg-gray-100 lg:hidden">
+          <!-- Hamburger: always visible when unpinned -->
+          <button v-if="!sidebarPinned" @click="sidebarOpen = !sidebarOpen"
+            class="p-1.5 rounded-lg hover:bg-gray-100">
             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <!-- Breadcrumbs -->
@@ -85,7 +91,7 @@
           </button>
           <div v-if="showUserMenu" class="absolute right-0 top-12 w-64 bg-white rounded-xl shadow-lg border py-1 z-50">
             <div class="px-4 py-3 border-b">
-              <p class="font-semibold text-sm">{{ auth.user?.full_name || '—' }}</p>
+              <p class="font-semibold text-sm">{{ auth.user?.full_name || '\u2014' }}</p>
               <p class="text-xs text-gray-500 mt-0.5">{{ auth.user?.email }}</p>
               <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700 capitalize">{{ auth.user?.role }}</span>
             </div>
@@ -118,12 +124,24 @@
         <h2 class="text-lg font-bold mb-4">Edit Profile</h2>
         <form @submit.prevent="handleProfileSave" class="space-y-4">
           <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Email</label>
+            <input :value="auth.user?.email" disabled class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Role</label>
+            <input :value="auth.user?.role" disabled class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed capitalize" />
+          </div>
+          <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
             <input v-model="profileForm.full_name" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Phone</label>
             <input v-model="profileForm.phone" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Member Since</label>
+            <input :value="formatDate(auth.user?.created_at)" disabled class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
           </div>
           <div class="flex gap-3 justify-end pt-2">
             <button type="button" @click="showProfileEdit = false"
@@ -144,6 +162,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { updateMe } from '@/api/auth'
+import dayjs from 'dayjs'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -152,19 +171,37 @@ const route = useRoute()
 // Sidebar state
 const sidebarPinned = ref(true)
 const sidebarCollapsed = ref(false)
-const sidebarOpen = ref(false) // for unpinned/mobile hover
+const sidebarOpen = ref(false)
 
 const showUserMenu = ref(false)
 const showProfileEdit = ref(false)
 const profileSaving = ref(false)
 const profileForm = ref({ full_name: '', phone: '' })
 
-const navItems = [
-  { to: '/', icon: '📊', label: 'Dashboard' },
-  { to: '/customers', icon: '👥', label: 'Customers' },
-  { to: '/solutions', icon: '💎', label: 'Solutions' },
-  { to: '/templates', icon: '📧', label: 'Templates' },
-]
+const navItems = computed(() => {
+  const items = [
+    { to: '/', icon: '\ud83d\udcca', label: 'Dashboard' },
+    { to: '/customers', icon: '\ud83d\udc65', label: 'Customers' },
+    { to: '/solutions', icon: '\ud83d\udc8e', label: 'Solutions' },
+    { to: '/templates', icon: '\ud83d\udce7', label: 'Templates' },
+  ]
+  if (auth.user?.role === 'admin') {
+    items.push({ to: '/admin/users', icon: '\ud83d\udd11', label: 'User Management' })
+  }
+  return items
+})
+
+function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY') : '\u2014' }
+
+function togglePin() {
+  sidebarPinned.value = !sidebarPinned.value
+  if (!sidebarPinned.value) {
+    sidebarOpen.value = true
+  } else {
+    sidebarOpen.value = false
+    sidebarCollapsed.value = false
+  }
+}
 
 const breadcrumbs = computed(() => {
   const path = route.path
@@ -184,6 +221,8 @@ const breadcrumbs = computed(() => {
     else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Template' })
   } else if (path.startsWith('/visits')) {
     crumbs.push({ label: 'New Visit' })
+  } else if (path.startsWith('/admin')) {
+    crumbs.push({ label: 'User Management' })
   }
   return crumbs
 })

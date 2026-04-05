@@ -12,7 +12,7 @@
       </router-link>
     </div>
 
-    <!-- Tabs: Templates / Send Email / Message Log -->
+    <!-- Tabs -->
     <div class="border-b mb-6">
       <nav class="flex gap-6">
         <button v-for="t in tabs" :key="t" @click="activeTab = t"
@@ -44,6 +44,10 @@
               class="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             </button>
+            <button v-if="t.channel === 'whatsapp'" @click="openSendWhatsApp(t)" title="Send WhatsApp"
+              class="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            </button>
             <button @click="$router.push(`/templates/${t.id}/edit`)" title="Edit"
               class="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -57,10 +61,13 @@
         <p v-if="t.subject" class="text-sm text-gray-600 mt-3"><strong>Subject:</strong> {{ t.subject }}</p>
         <p class="text-sm text-gray-500 mt-1 whitespace-pre-wrap line-clamp-3">{{ t.body }}</p>
       </div>
-      <div v-if="!templates.length" class="text-center py-16">
+      <div v-if="!loading && !templates.length" class="text-center py-16">
         <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
         <p class="text-gray-400 font-medium">No templates yet</p>
-        <p class="text-gray-400 text-sm mt-1">Create an email template to start sending messages</p>
+        <p class="text-gray-400 text-sm mt-1">Create an email or WhatsApp template to start sending messages</p>
+      </div>
+      <div v-if="loading" class="text-center py-16">
+        <div class="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
       </div>
     </div>
 
@@ -68,32 +75,78 @@
     <div v-if="activeTab === 'Send Email'" class="max-w-xl">
       <div class="bg-white rounded-xl border p-6 space-y-4">
         <h3 class="font-semibold text-gray-700">Compose Email</h3>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
-          <select v-model="emailForm.customer_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-            <option value="">Select customer...</option>
-            <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.email || 'no email' }})</option>
-          </select>
+        <div v-if="!emailTemplates.length" class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+          No email templates found. <router-link to="/templates/new" class="underline font-medium">Create one first</router-link>.
         </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Template *</label>
-          <select v-model="emailForm.template_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-            <option value="">Select template...</option>
-            <option v-for="t in emailTemplates" :key="t.id" :value="t.id">{{ t.name }} — {{ t.subject }}</option>
-          </select>
-        </div>
-        <div v-if="selectedTemplate" class="bg-gray-50 rounded-lg p-4">
-          <p class="text-xs font-medium text-gray-500 mb-1">Preview</p>
-          <p class="text-sm font-medium">{{ selectedTemplate.subject }}</p>
-          <p class="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{{ selectedTemplate.body }}</p>
-        </div>
-        <button @click="handleSendEmail" :disabled="sending || !emailForm.customer_id || !emailForm.template_id"
-          class="bg-primary-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-          {{ sending ? 'Sending...' : 'Send Email' }}
-        </button>
+        <template v-else>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+            <select v-model="emailForm.customer_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+              <option value="">Select customer...</option>
+              <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.email || 'no email' }})</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Template *</label>
+            <select v-model="emailForm.template_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+              <option value="">Select template...</option>
+              <option v-for="t in emailTemplates" :key="t.id" :value="t.id">{{ t.name }} \u2014 {{ t.subject }}</option>
+            </select>
+          </div>
+          <div v-if="selectedEmailTemplate" class="bg-gray-50 rounded-lg p-4">
+            <p class="text-xs font-medium text-gray-500 mb-1">Preview</p>
+            <p class="text-sm font-medium">{{ selectedEmailTemplate.subject }}</p>
+            <p class="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{{ selectedEmailTemplate.body }}</p>
+          </div>
+          <button @click="handleSendEmail" :disabled="sending || !emailForm.customer_id || !emailForm.template_id"
+            class="bg-primary-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            {{ sending ? 'Sending...' : 'Send Email' }}
+          </button>
+        </template>
         <div v-if="sendResult" class="rounded-lg p-3 text-sm" :class="sendResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
           {{ sendResult.message }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Send WhatsApp Tab -->
+    <div v-if="activeTab === 'Send WhatsApp'" class="max-w-xl">
+      <div class="bg-white rounded-xl border p-6 space-y-4">
+        <h3 class="font-semibold text-gray-700 flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          Compose WhatsApp Message
+        </h3>
+        <div v-if="!waTemplates.length" class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
+          No WhatsApp templates found. <router-link to="/templates/new" class="underline font-medium">Create one first</router-link> with channel set to "whatsapp".
+        </div>
+        <template v-else>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+            <select v-model="waForm.customer_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+              <option value="">Select customer...</option>
+              <option v-for="c in waCustomers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.phone || 'no phone' }})</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Template *</label>
+            <select v-model="waForm.template_id" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+              <option value="">Select template...</option>
+              <option v-for="t in waTemplates" :key="t.id" :value="t.id">{{ t.name }}</option>
+            </select>
+          </div>
+          <div v-if="selectedWaTemplate" class="bg-green-50 rounded-lg p-4">
+            <p class="text-xs font-medium text-green-700 mb-1">Message Preview</p>
+            <p class="text-sm text-green-800 whitespace-pre-wrap">{{ selectedWaTemplate.body }}</p>
+          </div>
+          <button @click="handleSendWhatsApp" :disabled="waSending || !waForm.customer_id || !waForm.template_id"
+            class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            {{ waSending ? 'Sending...' : 'Send WhatsApp' }}
+          </button>
+        </template>
+        <div v-if="waResult" class="rounded-lg p-3 text-sm" :class="waResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+          {{ waResult.message }}
         </div>
       </div>
     </div>
@@ -117,7 +170,7 @@
                 <span class="text-xs px-2 py-0.5 rounded-full" :class="m.channel === 'email' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">{{ m.channel }}</span>
               </td>
               <td class="px-4 py-3">{{ m.recipient }}</td>
-              <td class="px-4 py-3 max-w-xs truncate">{{ m.subject || '—' }}</td>
+              <td class="px-4 py-3 max-w-xs truncate">{{ m.subject || '\u2014' }}</td>
               <td class="px-4 py-3">
                 <span class="text-xs px-2 py-0.5 rounded-full" :class="m.status === 'sent' ? 'bg-green-100 text-green-700' : m.status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'">{{ m.status }}</span>
               </td>
@@ -182,50 +235,105 @@
         </div>
       </div>
     </div>
+
+    <!-- Send WhatsApp from Template Modal -->
+    <div v-if="sendWaModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="sendWaModal = null">
+      <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          Send WhatsApp: {{ sendWaModal.name }}
+        </h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Select Customer</label>
+            <select v-model="waModalCustomerId" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+              <option value="">Select customer...</option>
+              <option v-for="c in waCustomers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.phone }})</option>
+            </select>
+          </div>
+          <div class="bg-green-50 rounded-lg p-3">
+            <p class="text-xs text-green-700 mb-1">Message</p>
+            <p class="text-sm text-green-800 whitespace-pre-wrap">{{ sendWaModal.body }}</p>
+          </div>
+          <div class="flex gap-3 justify-end">
+            <button @click="sendWaModal = null" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+            <button @click="handleWaModalSend" :disabled="waModalSending || !waModalCustomerId"
+              class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50">
+              {{ waModalSending ? 'Sending...' : 'Send' }}
+            </button>
+          </div>
+          <div v-if="waModalResult" class="rounded-lg p-3 text-sm" :class="waModalResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+            {{ waModalResult.message }}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { listTemplates, deleteTemplate, sendEmail, getMessageLog } from '@/api/messages'
+import { listTemplates, deleteTemplate, sendEmail, sendWhatsApp, getMessageLog } from '@/api/messages'
 import { listCustomers } from '@/api/customers'
 import dayjs from 'dayjs'
 
 const templates = ref([])
 const customers = ref([])
 const messageLogs = ref([])
+const loading = ref(false)
 const activeTab = ref('Templates')
-const tabs = ['Templates', 'Send Email', 'Message Log']
+const tabs = ['Templates', 'Send Email', 'Send WhatsApp', 'Message Log']
 
 const deleteTarget = ref(null)
 const deleting = ref(false)
 
-// Send email form (tab)
+// Send email form
 const emailForm = ref({ customer_id: '', template_id: '' })
 const sending = ref(false)
 const sendResult = ref(null)
 
-// Send email modal (from template action)
+// Send WhatsApp form
+const waForm = ref({ customer_id: '', template_id: '' })
+const waSending = ref(false)
+const waResult = ref(null)
+
+// Send email modal
 const sendEmailModal = ref(null)
 const modalCustomerId = ref('')
 const modalSending = ref(false)
 const modalResult = ref(null)
 
-function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY HH:mm') : '—' }
+// Send WhatsApp modal
+const sendWaModal = ref(null)
+const waModalCustomerId = ref('')
+const waModalSending = ref(false)
+const waModalResult = ref(null)
+
+function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY HH:mm') : '\u2014' }
 
 const emailTemplates = computed(() => templates.value.filter(t => t.channel === 'email'))
+const waTemplates = computed(() => templates.value.filter(t => t.channel === 'whatsapp'))
 const emailableCustomers = computed(() => customers.value.filter(c => c.email))
-const selectedTemplate = computed(() => emailTemplates.value.find(t => t.id === Number(emailForm.value.template_id)))
+const waCustomers = computed(() => customers.value.filter(c => c.phone))
+const selectedEmailTemplate = computed(() => emailTemplates.value.find(t => t.id === Number(emailForm.value.template_id)))
+const selectedWaTemplate = computed(() => waTemplates.value.find(t => t.id === Number(waForm.value.template_id)))
 
 async function loadTemplates() {
-  const { data } = await listTemplates()
-  templates.value = data
+  loading.value = true
+  try {
+    const { data } = await listTemplates()
+    templates.value = data
+  } catch {
+    templates.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadCustomers() {
   try {
-    const { data } = await listCustomers({ is_active: true })
-    customers.value = data
+    const { data } = await listCustomers()
+    customers.value = Array.isArray(data) ? data : []
   } catch { customers.value = [] }
 }
 
@@ -236,9 +344,7 @@ async function loadLogs() {
   } catch { messageLogs.value = [] }
 }
 
-function confirmDelete(template) {
-  deleteTarget.value = template
-}
+function confirmDelete(template) { deleteTarget.value = template }
 
 async function handleDelete() {
   deleting.value = true
@@ -246,9 +352,7 @@ async function handleDelete() {
     await deleteTemplate(deleteTarget.value.id)
     deleteTarget.value = null
     await loadTemplates()
-  } finally {
-    deleting.value = false
-  }
+  } finally { deleting.value = false }
 }
 
 async function handleSendEmail() {
@@ -261,15 +365,32 @@ async function handleSendEmail() {
     loadLogs()
   } catch (e) {
     sendResult.value = { ok: false, message: e.response?.data?.detail || 'Failed to send email. Check SMTP settings.' }
-  } finally {
-    sending.value = false
-  }
+  } finally { sending.value = false }
+}
+
+async function handleSendWhatsApp() {
+  waSending.value = true
+  waResult.value = null
+  try {
+    await sendWhatsApp({ customer_id: Number(waForm.value.customer_id), template_id: Number(waForm.value.template_id) })
+    waResult.value = { ok: true, message: 'WhatsApp message sent successfully!' }
+    waForm.value = { customer_id: '', template_id: '' }
+    loadLogs()
+  } catch (e) {
+    waResult.value = { ok: false, message: e.response?.data?.detail || 'Failed to send WhatsApp. Check Twilio settings.' }
+  } finally { waSending.value = false }
 }
 
 function openSendEmail(template) {
   sendEmailModal.value = template
   modalCustomerId.value = ''
   modalResult.value = null
+}
+
+function openSendWhatsApp(template) {
+  sendWaModal.value = template
+  waModalCustomerId.value = ''
+  waModalResult.value = null
 }
 
 async function handleModalSend() {
@@ -281,14 +402,24 @@ async function handleModalSend() {
     loadLogs()
   } catch (e) {
     modalResult.value = { ok: false, message: e.response?.data?.detail || 'Failed to send email. Check SMTP settings.' }
-  } finally {
-    modalSending.value = false
-  }
+  } finally { modalSending.value = false }
+}
+
+async function handleWaModalSend() {
+  waModalSending.value = true
+  waModalResult.value = null
+  try {
+    await sendWhatsApp({ customer_id: Number(waModalCustomerId.value), template_id: sendWaModal.value.id })
+    waModalResult.value = { ok: true, message: 'WhatsApp message sent!' }
+    loadLogs()
+  } catch (e) {
+    waModalResult.value = { ok: false, message: e.response?.data?.detail || 'Failed to send WhatsApp. Check Twilio settings.' }
+  } finally { waModalSending.value = false }
 }
 
 watch(activeTab, (tab) => {
   if (tab === 'Message Log') loadLogs()
-  if (tab === 'Send Email' && !customers.value.length) loadCustomers()
+  if ((tab === 'Send Email' || tab === 'Send WhatsApp') && !customers.value.length) loadCustomers()
 })
 
 onMounted(() => {

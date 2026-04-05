@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.message import (
     MessageLogRead,
     SendEmailRequest,
+    SendWhatsAppRequest,
     TemplateCreate,
     TemplateRead,
     TemplateUpdate,
@@ -23,7 +24,7 @@ from app.schemas.message import (
 router = APIRouter(tags=["messages"])
 
 
-# ── Template CRUD ──
+# -- Template CRUD --
 
 
 @router.post("/templates/", response_model=TemplateRead)
@@ -95,7 +96,21 @@ async def delete_template(
     return {"detail": "Template deactivated"}
 
 
-# ── Send Email ──
+# -- Helper: render placeholders --
+
+
+def _render_placeholders(text: str, customer: Customer) -> str:
+    context = {
+        "customer_name": customer.name,
+        "customer_email": customer.email or "",
+        "customer_phone": customer.phone or "",
+    }
+    for key, val in context.items():
+        text = text.replace("{{" + key + "}}", val)
+    return text
+
+
+# -- Send Email --
 
 
 @router.post("/messages/send-email", response_model=MessageLogRead)
@@ -104,7 +119,6 @@ async def send_email(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    # Fetch customer
     cust_result = await session.execute(select(Customer).where(Customer.id == body.customer_id))
     customer = cust_result.scalar_one_or_none()
     if not customer:
@@ -112,25 +126,14 @@ async def send_email(
     if not customer.email:
         raise HTTPException(status_code=400, detail="Customer has no email address")
 
-    # Fetch template
     tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
     template = tpl_result.scalar_one_or_none()
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    # Render placeholders
-    context = {
-        "customer_name": customer.name,
-        "customer_email": customer.email or "",
-        "customer_phone": customer.phone or "",
-    }
-    rendered_subject = template.subject or ""
-    rendered_body = template.body
-    for key, val in context.items():
-        rendered_subject = rendered_subject.replace(f"{{{{{key}}}}}", val)
-        rendered_body = rendered_body.replace(f"{{{{{key}}}}}", val)
+    rendered_subject = _render_placeholders(template.subject or "", customer)
+    rendered_body = _render_placeholders(template.body, customer)
 
-    # Try to send via email service
     status = MessageStatus.pending
     error_msg = None
     sent_at = None
@@ -144,7 +147,6 @@ async def send_email(
         status = MessageStatus.failed
         error_msg = str(e)
 
-    # Log
     log = MessageLog(
         customer_id=customer.id,
         template_id=template.id,
@@ -163,7 +165,61 @@ async def send_email(
     return log
 
 
-# ── Message Log ──
+# -- Send WhatsApp --
+
+
+@router.post("/messages/send-whatsapp", response_model=MessageLogRead)
+async def send_whatsapp_message(
+    body: SendWhatsAppRequest,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    cust_result = await session.execute(select(Customer).where(Customer.id == body.customer_id))
+    customer = cust_result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    if not customer.phone:
+        raise HTTPException(status_code=400, detail="Customer has no phone number")
+
+    tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
+    template = tpl_result.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    rendered_body = _render_placeholders(template.body, customer)
+
+    status = MessageStatus.pending
+    error_msg = None
+    sent_at = None
+
+    try:
+        from app.services.whatsapp import send_whatsapp
+        await send_whatsapp(to=customer.phone, body=rendered_body)
+        status = MessageStatus.sent
+        sent_at = datetime.utcnow()
+    except Exception as e:
+        status = MessageStatus.failed
+        error_msg = str(e)
+
+    log = MessageLog(
+        customer_id=customer.id,
+        template_id=template.id,
+        visit_id=body.visit_id,
+        channel="whatsapp",
+        recipient=customer.phone,
+        subject=None,
+        body_snapshot=rendered_body,
+        status=status,
+        error_message=error_msg,
+        sent_at=sent_at,
+    )
+    session.add(log)
+    await session.commit()
+    await session.refresh(log)
+    return log
+
+
+# -- Message Log --
 
 
 @router.get("/messages/log", response_model=list[MessageLogRead])

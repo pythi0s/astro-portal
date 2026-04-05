@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.health import router as health_router
-from app.api.routes import auth, customers, dashboard, messages, solutions, timeline, visits
+from app.api.routes import admin, auth, customers, dashboard, messages, solutions, timeline, visits
 from app.core.config import settings
 
 app = FastAPI(title="Astro-Portal CRM API")
@@ -30,6 +30,7 @@ app.include_router(solutions.router)
 app.include_router(timeline.router)
 app.include_router(messages.router)
 app.include_router(dashboard.router)
+app.include_router(admin.router)
 
 
 @app.get("/")

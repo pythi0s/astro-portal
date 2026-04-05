@@ -15,6 +15,7 @@ const routes = [
     { path: '/templates', name: 'templates', component: () => import('@/views/TemplateList.vue') },
     { path: '/templates/new', name: 'template-create', component: () => import('@/views/TemplateForm.vue') },
     { path: '/templates/:id/edit', name: 'template-edit', component: () => import('@/views/TemplateForm.vue'), props: true },
+    { path: '/admin/users', name: 'admin-users', component: () => import('@/views/AdminUsers.vue'), meta: { requiresAdmin: true } },
 ]
 
 const router = createRouter({
@@ -26,6 +27,9 @@ router.beforeEach((to) => {
     const auth = useAuthStore()
     if (!to.meta.public && !auth.token) {
         return { name: 'login' }
+    }
+    if (to.meta.requiresAdmin && auth.user?.role !== 'admin') {
+        return { name: 'dashboard' }
     }
 })
 
