@@ -50,6 +50,18 @@ def run_migrations_offline():
         context.run_migrations()
 
 
+def do_run_migrations(connection):
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+        render_item=render_item,
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
 # ONLINE migrations (async)
 async def run_migrations_online():
     connectable = async_engine_from_config(
@@ -59,16 +71,7 @@ async def run_migrations_online():
     )
 
     async with connectable.connect() as connection:
-        await connection.run_sync(
-            lambda conn: context.configure(
-                connection=conn,
-                target_metadata=target_metadata,
-                compare_type=True,
-                render_item=render_item,
-            )
-        )
-
-        await connection.run_sync(lambda conn: context.run_migrations())
+        await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()
 

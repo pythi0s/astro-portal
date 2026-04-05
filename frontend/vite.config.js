@@ -11,7 +11,18 @@ export default defineConfig({
     port: 5173,
     watch: {
       usePolling: true // Ensures hot-reloading works across Windows/WSL/Docker boundaries
-    }
+    },
+    proxy: {
+      '/api': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/uploads': {
+        target: 'http://backend:8000',
+        changeOrigin: true,
+      },
+    },
   },
   resolve: {
     alias: {

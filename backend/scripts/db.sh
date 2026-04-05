@@ -15,12 +15,12 @@ case "$CMD" in
       echo "Provide message"
       exit 1
     fi
-    docker compose run --no-deps --rm backend \
+    docker compose run --rm backend \
       uv run alembic revision --autogenerate -m "$MSG"
     ;;
 
   migrate)
-    docker compose run --no-deps --rm backend \
+    docker compose run --rm backend \
       uv run alembic upgrade head
     ;;
 

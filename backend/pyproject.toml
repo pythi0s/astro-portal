@@ -24,10 +24,14 @@ dependencies = [
 
     "prometheus-client>=0.20,<1.0",
 
-    "passlib[bcrypt]>=1.7,<2.0",
+    "bcrypt>=4.0,<6.0",
     "python-jose>=3.3,<4.0",
 
-    "orjson>=3.9,<4.0"
+    "orjson>=3.9,<4.0",
+
+    "aiosmtplib>=3.0,<4.0",
+
+    "python-multipart>=0.0.9,<1.0"
 ]
 
 [dependency-groups]
