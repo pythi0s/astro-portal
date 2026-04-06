@@ -31,6 +31,11 @@ router.beforeEach(async (to) => {
         await auth.init()
     }
 
+    // If logged in and heading to login page, redirect to dashboard
+    if (to.name === 'login' && auth.isLoggedIn) {
+        return { name: 'dashboard' }
+    }
+
     if (!to.meta.public && !auth.isLoggedIn) {
         return { name: 'login' }
     }

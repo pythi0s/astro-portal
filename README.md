@@ -139,21 +139,21 @@ A full-stack CRM application built for astrologers to manage customers, visits, 
 # Clone and enter
 git clone <repo-url> && cd astro-portal
 
-# Copy environment file
+# Copy environment file and configure
 cp backend/.env.example backend/.env
-# Edit backend/.env with your settings (at minimum, set SECRET_KEY)
+# Edit backend/.env — set SECRET_KEY and optionally BOOTSTRAP_ADMIN_* vars
 
-# Start core services (db, backend, frontend)
+# Start everything (migrations and admin bootstrap happen automatically)
 docker compose up --build
-
-# Initialize database (first time only)
-./scripts/db.sh init
-
-# Create first admin user
-curl -X POST http://localhost:8000/auth/bootstrap \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "changeme", "full_name": "Admin"}'
 ```
+
+On first start, the backend will:
+1. **Run database migrations** automatically (Alembic `upgrade head`)
+2. **Create an admin user** if the database is empty and `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` are set in `.env`
+
+On subsequent starts, migrations are re-checked (no-op if up to date) and admin creation is skipped if users already exist.
+
+> **Manual bootstrap** is still available via `POST /auth/bootstrap` if you prefer not to set env vars.
 
 **Access Points:**
 
@@ -314,6 +314,12 @@ See `nginx/ssl/README.md` for Let's Encrypt certificate instructions.
 | `TWILIO_WHATSAPP_FROM`   | No       | —                        | Twilio WhatsApp sender number      |
 | `CELERY_BROKER_URL`      | No       | `redis://redis:6379/0`   | Redis URL for Celery broker        |
 | `CELERY_RESULT_BACKEND`  | No       | `redis://redis:6379/1`   | Redis URL for Celery results       |
+| `BOOTSTRAP_ADMIN_EMAIL`  | No       | —                        | Auto-create admin with this email on first start |
+| `BOOTSTRAP_ADMIN_PASSWORD`| No      | —                        | Password for auto-created admin |
+| `BOOTSTRAP_ADMIN_NAME`   | No       | `Admin`                  | Display name for auto-created admin |
+| `BOOTSTRAP_ADMIN_EMAIL`  | No       | —                        | Auto-create admin with this email on first start |
+| `BOOTSTRAP_ADMIN_PASSWORD`| No      | —                        | Password for auto-created admin |
+| `BOOTSTRAP_ADMIN_NAME`   | No       | `Admin`                  | Display name for auto-created admin |
 | `UPLOAD_DIR`             | No       | `/workspace/uploads`     | File upload directory              |
 
 ---

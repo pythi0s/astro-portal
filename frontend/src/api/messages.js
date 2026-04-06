@@ -7,3 +7,7 @@ export const deleteTemplate = (id) => client.delete(`/templates/${id}`)
 export const sendEmail = (data) => client.post('/messages/send-email', data)
 export const sendWhatsApp = (data) => client.post('/messages/send-whatsapp', data)
 export const getMessageLog = (params) => client.get('/messages/log', { params })
+export const getMessageLogs = getMessageLog
+export const bulkSend = (data) => client.post('/messages/bulk-send', data)
+export const getCustomerMessages = (customerId, params) => client.get('/messages/log', { params: { customer_id: customerId, ...params } })
+export const sendCustomerMessage = (data) => client.post('/messages/send-email', data)

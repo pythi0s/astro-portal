@@ -1,24 +1,33 @@
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-6">New Visit</h1>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">New Visit</h1>
+        <p class="page-subtitle">Log a consultation visit</p>
+      </div>
+    </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6 max-w-3xl">
-      <div class="bg-white rounded-xl border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-700">Visit Details</h3>
+      <!-- Visit Details -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          Visit Details
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+            <label class="form-label">Customer *</label>
             <select v-model="form.customer_id" required class="form-select w-full">
               <option value="">Select customer...</option>
               <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }} ({{ c.phone || c.email || c.id }})</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Visit Date</label>
+            <label class="form-label">Visit Date</label>
             <input v-model="form.visit_date" type="date" class="form-input" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Consultation Type</label>
+            <label class="form-label">Consultation Type</label>
             <select v-model="form.consultation_type" class="form-select w-full">
               <option value="first_visit">First Visit</option>
               <option value="follow_up">Follow Up</option>
@@ -27,37 +36,47 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Follow-up Date</label>
+            <label class="form-label">Follow-up Date</label>
             <input v-model="form.follow_up_date" type="date" class="form-input" />
           </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-700">Consultation</h3>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Problems Discussed</label>
-          <textarea v-model="form.problems_discussed" rows="2" class="form-input"></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Analysis</label>
-          <textarea v-model="form.analysis" rows="2" class="form-input"></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-600 mb-1">Recommendations</label>
-          <textarea v-model="form.recommendations" rows="2" class="form-input"></textarea>
+      <!-- Consultation -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Consultation
+        </h3>
+        <div class="space-y-4">
+          <div>
+            <label class="form-label">Problems Discussed</label>
+            <textarea v-model="form.problems_discussed" rows="2" class="form-input"></textarea>
+          </div>
+          <div>
+            <label class="form-label">Analysis</label>
+            <textarea v-model="form.analysis" rows="2" class="form-input"></textarea>
+          </div>
+          <div>
+            <label class="form-label">Recommendations</label>
+            <textarea v-model="form.recommendations" rows="2" class="form-input"></textarea>
+          </div>
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-700">Payment</h3>
+      <!-- Payment -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+          Payment
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Fees (₹)</label>
+            <label class="form-label">Fees (&#8377;)</label>
             <input v-model="form.fees" type="number" min="0" step="0.01" class="form-input" />
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
+            <label class="form-label">Payment Status</label>
             <select v-model="form.payment_status" class="form-select w-full">
               <option value="paid">Paid</option>
               <option value="pending">Pending</option>
@@ -66,9 +85,9 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+            <label class="form-label">Payment Method</label>
             <select v-model="form.payment_method" class="form-select w-full">
-              <option value="">—</option>
+              <option value="">&mdash;</option>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
               <option value="card">Card</option>
@@ -78,28 +97,41 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border p-5 space-y-4">
-        <h3 class="font-semibold text-gray-700">Solutions Given</h3>
+      <!-- Solutions Given -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+          Solutions Given
+        </h3>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-          <label v-for="s in solutions" :key="s.id" class="flex items-center gap-2 text-sm p-2 border rounded-lg cursor-pointer hover:bg-gray-50">
-            <input type="checkbox" :value="s.id" v-model="form.solution_ids" class="rounded" />
-            <span>{{ s.name }} <span class="text-gray-400">({{ s.category }})</span></span>
+          <label v-for="s in solutions" :key="s.id"
+            class="flex items-center gap-2 text-sm p-3 border rounded-xl cursor-pointer hover:bg-primary-50 hover:border-primary-300 transition-colors"
+            :class="form.solution_ids.includes(s.id) ? 'bg-primary-50 border-primary-300' : 'border-gray-200'">
+            <input type="checkbox" :value="s.id" v-model="form.solution_ids" class="rounded text-primary-600 focus:ring-primary-500" />
+            <span>{{ s.name }} <span class="text-gray-400 text-xs">({{ s.category }})</span></span>
           </label>
         </div>
-        <p v-if="!solutions.length" class="text-gray-400 text-sm">No solutions available. Create some first.</p>
+        <div v-if="!solutions.length" class="empty-state py-6">
+          <p class="text-gray-400 text-sm">No solutions available. Create some first.</p>
+        </div>
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-        <textarea v-model="form.notes" rows="2" class="form-input"></textarea>
+      <!-- Notes -->
+      <div class="form-section">
+        <h3 class="form-section-title">
+          <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          Notes
+        </h3>
+        <textarea v-model="form.notes" rows="2" class="form-input" placeholder="Additional notes..."></textarea>
       </div>
 
-      <div class="flex gap-3">
-        <button type="submit" :disabled="saving"
-          class="btn-primary px-6">
+      <!-- Actions -->
+      <div class="flex gap-3 pt-2">
+        <button type="submit" :disabled="saving" class="btn btn-primary">
+          <span v-if="saving" class="spinner-sm mr-2"></span>
           {{ saving ? 'Saving...' : 'Create Visit' }}
         </button>
-        <button type="button" @click="$router.back()" class="btn-secondary px-6">Cancel</button>
+        <button type="button" @click="$router.back()" class="btn btn-secondary">Cancel</button>
       </div>
     </form>
   </div>

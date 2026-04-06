@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,8 +8,16 @@ from fastapi.staticfiles import StaticFiles
 from app.api.health import router as health_router
 from app.api.routes import admin, auth, customers, dashboard, messages, solutions, timeline, visits
 from app.core.config import settings
+from app.core.startup import run_auto_setup
 
-app = FastAPI(title="Astro-Portal CRM API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await run_auto_setup()
+    yield
+
+
+app = FastAPI(title="Astro-Portal CRM API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
