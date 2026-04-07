@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <h1 class="text-2xl font-extrabold tracking-tight">
-          <span class="gradient-text">Customers</span>
+          Customers
         </h1>
         <p class="page-subtitle">{{ filtered.length }} customer{{ filtered.length !== 1 ? 's' : '' }} in your practice</p>
       </div>
@@ -87,7 +87,7 @@
             </td>
             <td>
               <span v-if="c.rashi" class="badge badge-gold">{{ c.rashi }}</span>
-              <span v-else class="text-gray-300">\u2014</span>
+              <span v-else class="text-gray-300">—</span>
             </td>
             <td class="text-sm text-gray-500">{{ dayjs(c.created_at).format('DD MMM YY') }}</td>
             <td class="text-right" @click.stop>

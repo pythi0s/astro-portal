@@ -32,7 +32,7 @@
           <div>
             <label class="form-label">Gender</label>
             <select v-model="form.gender" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Other</option>
@@ -57,7 +57,7 @@
           <div>
             <label class="form-label">Marital Status</label>
             <select v-model="form.marital_status" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option value="single">Single</option>
               <option value="married">Married</option>
               <option value="divorced">Divorced</option>
@@ -85,7 +85,7 @@
           <div>
             <label class="form-label">State</label>
             <select v-model="form.state" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option v-for="s in indianStates" :key="s" :value="s">{{ s }}</option>
             </select>
           </div>
@@ -106,14 +106,14 @@
           <div>
             <label class="form-label">Rashi (Moon Sign)</label>
             <select v-model="form.rashi" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option v-for="r in rashis" :key="r" :value="r">{{ r }}</option>
             </select>
           </div>
           <div>
             <label class="form-label">Nakshatra</label>
             <select v-model="form.nakshatra" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option v-for="n in nakshatras" :key="n" :value="n">{{ n }}</option>
             </select>
           </div>
@@ -124,7 +124,7 @@
           <div>
             <label class="form-label">Lagna (Ascendant)</label>
             <select v-model="form.lagna" class="form-select w-full">
-              <option value="">\u2014</option>
+              <option value="">—</option>
               <option v-for="r in rashis" :key="r" :value="r">{{ r }}</option>
             </select>
           </div>
