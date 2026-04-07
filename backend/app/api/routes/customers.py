@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.core.security import get_current_user
@@ -64,7 +65,14 @@ async def get_customer(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    result = await session.execute(select(Customer).where(Customer.id == customer_id))
+    result = await session.execute(
+        select(Customer)
+        .where(Customer.id == customer_id)
+        .options(
+            selectinload(Customer.visits),
+            selectinload(Customer.customer_solutions).selectinload(CustomerSolution.solution),
+        )
+    )
     customer = result.scalar_one_or_none()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")

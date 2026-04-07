@@ -126,13 +126,25 @@ async def send_email(
     if not customer.email:
         raise HTTPException(status_code=400, detail="Customer has no email address")
 
-    tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
-    template = tpl_result.scalar_one_or_none()
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+    template = None
+    rendered_subject = body.subject or ""
+    rendered_body = body.body or ""
+    channel = "email"
 
-    rendered_subject = _render_placeholders(template.subject or "", customer)
-    rendered_body = _render_placeholders(template.body, customer)
+    if body.template_id:
+        tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
+        template = tpl_result.scalar_one_or_none()
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        rendered_subject = _render_placeholders(template.subject or "", customer)
+        rendered_body = _render_placeholders(template.body, customer)
+        channel = template.channel.value
+    elif not body.subject and not body.body:
+        raise HTTPException(status_code=400, detail="Provide either a template_id or subject/body")
+
+    # Apply placeholder rendering to custom subject/body too
+    rendered_subject = _render_placeholders(rendered_subject, customer)
+    rendered_body = _render_placeholders(rendered_body, customer)
 
     status = MessageStatus.pending
     error_msg = None
@@ -149,9 +161,9 @@ async def send_email(
 
     log = MessageLog(
         customer_id=customer.id,
-        template_id=template.id,
+        template_id=template.id if template else None,
         visit_id=body.visit_id,
-        channel=template.channel.value,
+        channel=channel,
         recipient=customer.email,
         subject=rendered_subject,
         body_snapshot=rendered_body,
@@ -205,7 +217,7 @@ async def send_whatsapp_message(
         customer_id=customer.id,
         template_id=template.id,
         visit_id=body.visit_id,
-        channel="whatsapp",
+        channel=template.channel.value,
         recipient=customer.phone,
         subject=None,
         body_snapshot=rendered_body,

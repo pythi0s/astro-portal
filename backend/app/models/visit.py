@@ -2,9 +2,12 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from app.models.customer import Customer
 
 
 class ConsultationType(str, enum.Enum):
@@ -49,3 +52,6 @@ class Visit(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    customer: Optional["Customer"] = Relationship(back_populates="visits")

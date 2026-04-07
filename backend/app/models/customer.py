@@ -1,9 +1,13 @@
 # app/models/customer.py
 import enum
 from datetime import date, datetime, time
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from app.models.visit import Visit
+    from app.models.customer_solution import CustomerSolution
 
 
 class Gender(str, enum.Enum):
@@ -49,3 +53,7 @@ class Customer(SQLModel, table=True):
     created_by: Optional[int] = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships (ORM only — no DB column changes)
+    visits: list["Visit"] = Relationship(back_populates="customer")
+    customer_solutions: list["CustomerSolution"] = Relationship(back_populates="customer")

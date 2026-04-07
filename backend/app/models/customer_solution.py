@@ -1,9 +1,13 @@
 # app/models/customer_solution.py
 import enum
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from app.models.customer import Customer
+    from app.models.solution import Solution
 
 
 class CustomerSolutionStatus(str, enum.Enum):
@@ -21,3 +25,7 @@ class CustomerSolution(SQLModel, table=True):
     status: CustomerSolutionStatus = Field(default=CustomerSolutionStatus.active)
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    customer: Optional["Customer"] = Relationship(back_populates="customer_solutions")
+    solution: Optional["Solution"] = Relationship()

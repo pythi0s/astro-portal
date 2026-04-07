@@ -41,8 +41,10 @@ class TemplateRead(BaseModel):
 
 class SendEmailRequest(BaseModel):
     customer_id: int
-    template_id: int
+    template_id: Optional[int] = None
     visit_id: Optional[int] = None
+    subject: Optional[str] = None
+    body: Optional[str] = None
 
 
 class SendWhatsAppRequest(BaseModel):

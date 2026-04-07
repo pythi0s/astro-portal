@@ -1,8 +1,8 @@
 <template>
-  <div v-if="route.meta?.public">
+  <div v-if="!auth.isLoggedIn">
     <router-view />
   </div>
-  <div v-else-if="auth.isLoggedIn" class="flex h-screen bg-gray-50">
+  <div v-else class="flex h-screen bg-gray-50">
     <!-- Sidebar overlay (mobile / unpinned hover) -->
     <div v-if="sidebarOpen && !sidebarPinned" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden" @click="sidebarOpen = false"></div>
 
@@ -163,15 +163,18 @@
     </div>
   </div>
 </template>
+
 <script setup>
-import { ref, computed, reactive, provide } from 'vue'
+import { ref, computed, reactive, provide, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { updateMe } from '@/api/auth'
 import dayjs from 'dayjs'
+
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
 const sidebarPinned = ref(true)
 const sidebarCollapsed = ref(false)
 const sidebarOpen = ref(false)
@@ -179,13 +182,24 @@ const showUserMenu = ref(false)
 const showProfileEdit = ref(false)
 const profileSaving = ref(false)
 const profileForm = ref({ full_name: '', phone: '' })
-const confirmDialog = reactive({ show: false, title: '', subtitle: '', message: '', type: 'danger', confirmLabel: 'Confirm', onConfirm: null, onCancel: null })
+
+const confirmDialog = reactive({
+  show: false, title: '', subtitle: '', message: '',
+  type: 'danger', confirmLabel: 'Confirm',
+  onConfirm: null, onCancel: null,
+})
+
 function showConfirm({ title, subtitle = '', message, type = 'danger', confirmLabel = 'Confirm' }) {
   return new Promise((resolve) => {
-    Object.assign(confirmDialog, { show: true, title, subtitle, message, type, confirmLabel, onConfirm: () => resolve(true), onCancel: () => resolve(false) })
+    Object.assign(confirmDialog, {
+      show: true, title, subtitle, message, type, confirmLabel,
+      onConfirm: () => resolve(true),
+      onCancel: () => resolve(false),
+    })
   })
 }
 provide('confirm', showConfirm)
+
 const navItems = computed(() => {
   const items = [
     { to: '/', icon: '\uD83D\uDCCA', label: 'Dashboard' },
@@ -193,28 +207,86 @@ const navItems = computed(() => {
     { to: '/solutions', icon: '\uD83D\uDC8E', label: 'Solutions' },
     { to: '/templates', icon: '\uD83D\uDCE7', label: 'Templates' },
   ]
-  if (auth.user?.role === 'admin') { items.push({ to: '/admin/users', icon: '\uD83D\uDD11', label: 'User Management' }) }
+  if (auth.user?.role === 'admin') {
+    items.push({ to: '/admin/users', icon: '\uD83D\uDD11', label: 'User Management' })
+  }
   return items
 })
+
 function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY') : '\u2014' }
+
 function togglePin() {
-  if (sidebarPinned.value) { sidebarPinned.value = false; sidebarCollapsed.value = false; sidebarOpen.value = true }
-  else { sidebarPinned.value = true; sidebarCollapsed.value = false; sidebarOpen.value = false }
+  if (sidebarPinned.value) {
+    sidebarPinned.value = false
+    sidebarCollapsed.value = false
+    sidebarOpen.value = true
+  } else {
+    sidebarPinned.value = true
+    sidebarCollapsed.value = false
+    sidebarOpen.value = false
+  }
 }
+
 const breadcrumbs = computed(() => {
   const path = route.path
   const crumbs = []
-  if (path.startsWith('/customers')) { crumbs.push({ label: 'Customers', to: '/customers' }); if (path === '/customers/new') crumbs.push({ label: 'New Customer' }); else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Customer' }); else if (route.params.id) crumbs.push({ label: 'Details' }) }
-  else if (path.startsWith('/solutions')) { crumbs.push({ label: 'Solutions', to: '/solutions' }); if (path === '/solutions/new') crumbs.push({ label: 'New Solution' }); else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Solution' }) }
-  else if (path.startsWith('/templates')) { crumbs.push({ label: 'Templates', to: '/templates' }); if (path === '/templates/new') crumbs.push({ label: 'New Template' }); else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Template' }) }
-  else if (path.startsWith('/visits')) { crumbs.push({ label: 'New Visit' }) }
-  else if (path.startsWith('/admin')) { crumbs.push({ label: 'User Management' }) }
+  if (path.startsWith('/customers')) {
+    crumbs.push({ label: 'Customers', to: '/customers' })
+    if (path === '/customers/new') crumbs.push({ label: 'New Customer' })
+    else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Customer' })
+    else if (route.params.id) crumbs.push({ label: 'Details' })
+  } else if (path.startsWith('/solutions')) {
+    crumbs.push({ label: 'Solutions', to: '/solutions' })
+    if (path === '/solutions/new') crumbs.push({ label: 'New Solution' })
+    else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Solution' })
+  } else if (path.startsWith('/templates')) {
+    crumbs.push({ label: 'Templates', to: '/templates' })
+    if (path === '/templates/new') crumbs.push({ label: 'New Template' })
+    else if (path.endsWith('/edit')) crumbs.push({ label: 'Edit Template' })
+  } else if (path.startsWith('/visits')) {
+    crumbs.push({ label: 'New Visit' })
+  } else if (path.startsWith('/admin')) {
+    crumbs.push({ label: 'User Management' })
+  }
   return crumbs
 })
-function openProfileEdit() { profileForm.value = { full_name: auth.user?.full_name || '', phone: auth.user?.phone || '' }; showProfileEdit.value = true; showUserMenu.value = false }
-async function handleProfileSave() { profileSaving.value = true; try { await updateMe(profileForm.value); await auth.fetchUser(); showProfileEdit.value = false } finally { profileSaving.value = false } }
+
+function openProfileEdit() {
+  profileForm.value = {
+    full_name: auth.user?.full_name || '',
+    phone: auth.user?.phone || '',
+  }
+  showProfileEdit.value = true
+  showUserMenu.value = false
+}
+
+async function handleProfileSave() {
+  profileSaving.value = true
+  try {
+    await updateMe(profileForm.value)
+    await auth.fetchUser()
+    showProfileEdit.value = false
+  } finally {
+    profileSaving.value = false
+  }
+}
+
+onMounted(async () => {
+  if (auth.token && !auth.user) {
+    try { await auth.fetchUser() } catch { auth.logout() }
+  }
+})
+
 async function handleLogout() {
-  const ok = await showConfirm({ title: 'Sign Out', subtitle: 'You will be logged out', message: 'Are you sure you want to sign out of Astro Portal?', type: 'warning', confirmLabel: 'Sign Out' })
-  if (!ok) return; auth.logout(); router.push('/login')
+  const ok = await showConfirm({
+    title: 'Sign Out',
+    subtitle: 'You will be logged out',
+    message: 'Are you sure you want to sign out of Astro Portal?',
+    type: 'warning',
+    confirmLabel: 'Sign Out',
+  })
+  if (!ok) return
+  auth.logout()
+  router.push('/login')
 }
 </script>

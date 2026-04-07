@@ -1,5 +1,6 @@
 # app/schemas/customer.py
 from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -55,6 +56,45 @@ class CustomerUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+# Inline nested schemas to avoid circular imports
+class _VisitBrief(BaseModel):
+    id: int
+    visit_date: date
+    consultation_type: str
+    fees: Decimal
+    payment_status: str
+    payment_method: Optional[str] = None
+    problems_discussed: Optional[str] = None
+    analysis: Optional[str] = None
+    recommendations: Optional[str] = None
+    follow_up_date: Optional[date] = None
+    notes: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class _SolutionBrief(BaseModel):
+    id: int
+    name: str
+    category: str
+
+    model_config = {"from_attributes": True}
+
+
+class _CustomerSolutionBrief(BaseModel):
+    id: int
+    solution_id: int
+    visit_id: Optional[int] = None
+    given_date: date
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+    solution: Optional[_SolutionBrief] = None
+
+    model_config = {"from_attributes": True}
+
+
 class CustomerRead(BaseModel):
     id: int
     name: str
@@ -87,6 +127,10 @@ class CustomerRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # Nested relationships (populated when eager-loaded)
+    visits: list[_VisitBrief] = []
+    customer_solutions: list[_CustomerSolutionBrief] = []
+
     model_config = {"from_attributes": True}
 
 
@@ -97,6 +141,7 @@ class CustomerList(BaseModel):
     phone: Optional[str] = None
     city: Optional[str] = None
     rashi: Optional[str] = None
+    photo_path: Optional[str] = None
     is_active: bool
     created_at: datetime
 

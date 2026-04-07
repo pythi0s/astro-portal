@@ -10,4 +10,4 @@ export const getMessageLog = (params) => client.get('/messages/log', { params })
 export const getMessageLogs = getMessageLog
 export const bulkSend = (data) => client.post('/messages/bulk-send', data)
 export const getCustomerMessages = (customerId, params) => client.get('/messages/log', { params: { customer_id: customerId, ...params } })
-export const sendCustomerMessage = (data) => client.post('/messages/send-email', data)
+export const sendCustomerMessage = (customerId, data) => client.post('/messages/send-email', { customer_id: customerId, ...data })
