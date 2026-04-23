@@ -1,9 +1,9 @@
 # Astro Portal — React Frontend (`frontend-react/`)
 
-React + TypeScript + Vite shell for the new Astro Portal UI. This is the Step 2
-deliverable: a production-grade **auth foundation** (login, persistent session,
-silent refresh, role guards). Feature pages (customers, visits, solutions,
-messaging, dashboard, admin) are added in Steps 4 and 5.
+React + TypeScript + Vite shell for the new Astro Portal UI. Step 2 delivered the
+**auth foundation** (login, persistent session, silent refresh, role guards);
+Step 4 adds the **Revenue Dashboard** at `/dashboard`. Remaining feature pages
+(customers, visits, solutions, messaging, admin) ship in Step 5.
 
 The existing Vue app in `../frontend/` is **unchanged** and continues to serve
 production traffic until this app reaches feature parity.
@@ -18,11 +18,13 @@ production traffic until this app reaches feature parity.
 | Build            | Vite 5                                              |
 | Routing          | `react-router-dom` v6 (data router)                 |
 | Auth state       | `zustand`                                           |
+| Server state     | `@tanstack/react-query` v5 (Step 4)                 |
 | HTTP             | `axios` with interceptor-driven silent refresh      |
+| Charts           | `recharts` (Step 4)                                 |
 | Styling          | Tailwind CSS (palette mirrored from `../frontend/`) |
 
-No Redux, no Context for state, no `react-query` yet — those land in Step 4 when
-data fetching grows past the `/auth/*` endpoints.
+No Redux and no Context for app state. Zustand owns auth; React Query owns
+every piece of server data displayed on `/dashboard`.
 
 ---
 
@@ -187,3 +189,46 @@ Manual smoke tests against a live backend:
   conditionally render admin-only affordances. Never read `user.role` ad-hoc.
 - The Vue app in `../frontend/` will be retired once feature parity is reached
   (Step 5 finishes). Until then, both apps talk to the same backend.
+
+---
+
+## Revenue Dashboard (Step 4)
+
+Route `/dashboard` (also the default landing for authenticated users) reads all
+its data from the new Step 3 endpoints:
+
+| Panel                     | Endpoint                                 |
+| ------------------------- | ---------------------------------------- |
+| KPI cards + deltas        | `GET /dashboard/revenue?from&to` (x2: current + previous window) |
+| Earnings chart            | `GET /dashboard/earnings?period=&days=`  |
+| Payment status doughnut   | Derived from the revenue summary (collected / outstanding / waived) |
+| Recent visits             | `GET /visits/?date_from&date_to&limit=10` |
+| Top revenue by category   | `GET /dashboard/revenue-by-category?from&to` |
+| Staff collection (admin)  | Placeholder — backend endpoint deferred (see `docs/step-03-changelog.md`) |
+
+### Key design choices
+
+- **URL is the single source of truth for the range.** `/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD` is shareable and survives hard refresh.
+- **Granularity auto-follows the range** (≤31 d → day, ≤120 d → week, else month) with a manual per-session override. Override state is announced via `aria-live`.
+- **Delta vs. previous window** is computed client-side off the previous-window fetch. Zero-previous renders `—`, not `NaN%`.
+- **Money is always rendered through `formatMoney()`.** Currency code comes from `VITE_CURRENCY` (default `INR`). No `₹` or `$` characters appear in any JSX.
+- **One panel, one error.** `<PanelShell>` keeps a failed widget from blanking the whole page.
+
+### Manual verification checklist
+
+1. `/dashboard` renders for `admin`, `astrologer`, and `receptionist`. Unauthenticated visit redirects to `/login?next=%2Fdashboard`.
+2. Clicking `7D` / `30D` / `90D` / `365D` updates the URL and triggers one fetch per panel (check devtools Network).
+3. Hard-refreshing `?from=...&to=...` restores the exact range.
+4. The six KPI cards show value, delta %, and an up/down/flat glyph. No raw `NaN` or `Infinity`.
+5. Earnings chart granularity defaults to `day` at 30D; overriding to `week` updates the chart and the `aria-live` helper text.
+6. Payment-status doughnut legend amounts sum to Total Revenue ± 1.
+7. Recent-visits rows link to `/customers/:id` (Step-5 stub page — must navigate without JS error).
+8. Admin-only "Staff collection rate" panel is present for admin, **absent from the DOM** when logged in as astrologer or receptionist.
+9. `npm run build` succeeds. `npm run typecheck` is clean.
+10. Existing Step-2 behaviour still works: login, persistent session, silent 401 refresh.
+
+### What is deferred (and why)
+
+- **Vitest + React Testing Library + MSW tests** — test scaffolding is in `devDependencies`; suites ship in Step 6 alongside the setup hardening that also validates the docker/alembic path.
+- **Bundle-size measurement + Lighthouse score** — require a `vite build` on the target machine. Measure on the Docker test box and record in `docs/step-04-changelog.md` when available.
+- **Staff collection breakdown** — backend endpoint `NEW-03` was deferred in Step 3; the panel is a placeholder that still enforces the `hasRole('admin')` gate.

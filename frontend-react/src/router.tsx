@@ -7,6 +7,8 @@ import { Home } from '@/pages/Home';
 import { AdminDemo } from '@/pages/AdminDemo';
 import { Forbidden } from '@/pages/Forbidden';
 import { NotFound } from '@/pages/NotFound';
+import { Dashboard } from '@/pages/Dashboard';
+import { CustomerDetailStub } from '@/pages/CustomerDetailStub';
 
 export const router = createBrowserRouter([
   {
@@ -17,7 +19,10 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          { path: '/', element: <Home /> },
+          { path: '/', element: <Navigate to="/dashboard" replace /> },
+          { path: '/home', element: <Home /> },
+          { path: '/dashboard', element: <Dashboard /> },
+          { path: '/customers/:id', element: <CustomerDetailStub /> },
           {
             element: <RequireRole allow={['admin']} />,
             children: [{ path: '/admin-demo', element: <AdminDemo /> }],

@@ -1,11 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Hide the top bar on the login page and during boot to keep the initial paint calm.
   if (isBooting || !isAuthenticated || !user) return null;
 
   function onLogout() {
@@ -16,9 +16,14 @@ export function TopBar() {
   return (
     <header className="border-b border-midnight-900/10 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="text-base font-semibold text-midnight-900">
-          Astro Portal
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link to="/dashboard" className="text-base font-semibold text-midnight-900">
+            Astro Portal
+          </Link>
+          <nav aria-label="Primary" className="flex items-center gap-1 text-sm">
+            <NavItem to="/dashboard" label="Dashboard" />
+          </nav>
+        </div>
         <div className="flex items-center gap-3 text-sm">
           <span className="text-midnight-700">
             {user.full_name || user.email}
@@ -29,12 +34,29 @@ export function TopBar() {
           <button
             type="button"
             onClick={onLogout}
-            className="rounded-md border border-midnight-700/20 bg-white px-3 py-1.5 text-sm font-medium text-midnight-800 hover:bg-midnight-700/5"
+            className="rounded-md border border-midnight-700/20 bg-white px-3 py-1.5 text-sm font-medium text-midnight-800 hover:bg-midnight-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             Sign out
           </button>
         </div>
       </div>
     </header>
+  );
+}
+
+function NavItem({ to, label }: { to: string; label: string }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        clsx(
+          'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+          isActive ? 'bg-midnight-900 text-white' : 'text-midnight-800 hover:bg-midnight-900/5',
+        )
+      }
+    >
+      {label}
+    </NavLink>
   );
 }
