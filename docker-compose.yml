@@ -64,6 +64,21 @@ services:
     depends_on:
       - backend
 
+  frontend-react:
+    build:
+      context: ./frontend-react
+    volumes:
+      - ./frontend-react:/app
+      - /app/node_modules
+    ports:
+      - "5174:5174"
+    environment:
+      VITE_BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    profiles:
+      - react
+
   nginx:
     image: nginx:alpine
     ports:
