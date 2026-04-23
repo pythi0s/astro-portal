@@ -3,6 +3,8 @@
 > Produced as Step 1 of the `astro-portal` roadmap.
 > **Branch:** `intuitive-design` — **Commit:** `d17675511aaf85ca79d99790e1515c07dd88bd33` — repo has **no submodules**.
 > This document is authoritative for endpoint paths, role requirements, and the React page map consumed by Steps 2–6.
+>
+> **Step 3 reconciliation (2026-04-23):** gap remediation from `docs/step-03-changelog.md` has landed on branch `astro-cursor-test`. The §3 role matrix below is unchanged — Step 3 kept the "any authenticated user" posture for non-admin routes because the audit's proposed role tightening for astrologer/receptionist was gated on product sign-off (see §7 open question #1). Stricter per-role `require_role` wrappers land in Step 5 when the React UI surfaces the boundaries. `GAP-DATA-02` was re-verified during Step 3: the `ix_user_email` unique index already exists in the init migration (`71ad155155a5_init.py:56`), so no new migration was required.
 
 ---
 
@@ -344,7 +346,7 @@ Categories: `missing-ui` | `missing-endpoint` | `inconsistency` | `security` | `
 | **GAP-API-05** | missing-endpoint | med | [dashboard.py](../backend/app/api/routes/dashboard.py) | `/dashboard/summary` is MTD-only; `pending_payments` is all-time; nothing accepts a `from`/`to` range. | Step 3/4: either add range params to `/dashboard/summary` or introduce `/dashboard/revenue?from=&to=` (preferred — see §5). |
 | **GAP-API-06** | inconsistency | low | [admin.py:146-162](../backend/app/api/routes/admin.py) | `/admin/stats` returns untyped dict. | Step 3: add `AdminStats` schema. |
 | **GAP-DATA-01** | data-model | med | models | No monetary field on `Solution` or `CustomerSolution`. Revenue-by-category requires an allocation rule. | Step 3/4: pick an allocation rule (equal split across linked solutions) and document it; or introduce an optional `price` on `Solution` as the basis. |
-| **GAP-DATA-02** | data-model | low | [user.py:17](../backend/app/models/user.py) | `email` has `unique=True` in SQLModel, but the init migration creates the column without an explicit `UniqueConstraint` / unique index. (Confirmed by `backend/alembic/versions/71ad155155a5_init.py` — needs a direct `rg` check in Step 3 to confirm; currently `UNVERIFIED`.) | Step 3: add a named unique index `ix_user_email_unique` in a new migration; verify with `./scripts/db.sh describe user`. |
+| **GAP-DATA-02** | data-model | low | [user.py:17](../backend/app/models/user.py) | ~~`email` has `unique=True` in SQLModel, but the init migration creates the column without an explicit `UniqueConstraint` / unique index.~~ **RESOLVED (Step 3)**: re-read of `backend/alembic/versions/71ad155155a5_init.py:56` confirms `op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)` is already present in the init migration. Gap was a false positive. | No action. |
 | **GAP-PERF-01** | performance | low | [timeline.py:17-78](../backend/app/api/routes/timeline.py) | Pagination is in-memory after loading all visits/solutions/messages for the customer. Fine for tens of events; degrades at hundreds. | Step 3 (if ever needed): push `ORDER BY / LIMIT` into the DB via a UNION ALL. |
 | **GAP-PERF-02** | performance | low | [dashboard.py:76-125](../backend/app/api/routes/dashboard.py) | `dashboard_earnings` loads all Visits in the range into Python and buckets there. At thousands of visits this becomes the slow path. | Step 3 (later): move the grouping into SQL with `date_trunc`. |
 

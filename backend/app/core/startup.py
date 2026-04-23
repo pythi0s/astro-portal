@@ -1,4 +1,12 @@
-"""Auto-setup: run migrations and bootstrap admin on first start."""
+"""Auto-setup: run migrations and bootstrap admin on first start.
+
+Step 3 hardening:
+- Migration failures re-raise so the container exits with non-zero rather
+  than serving traffic against a broken schema.
+- Admin seed is idempotent: only creates a user if no active admin exists
+  AND the SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD env vars are set.
+- Works on (a) empty DB, (b) partially-migrated DB, (c) fully-migrated DB.
+"""
 
 import asyncio
 import logging
@@ -16,12 +24,10 @@ from app.models.user import User, UserRole
 
 log = logging.getLogger("uvicorn.error")
 
-# Alembic ini lives at the repo root inside the container
 _ALEMBIC_INI = Path(__file__).resolve().parents[2] / "alembic.ini"
 
 
 def _log(msg: str) -> None:
-    """Print to stderr (same as uvicorn) and flush immediately."""
     print(f"INFO:     [setup] {msg}", file=sys.stderr, flush=True)
 
 
@@ -37,45 +43,71 @@ def _run_migrations() -> None:
     command.upgrade(_alembic_cfg(), "head")
 
 
-async def run_auto_setup() -> None:
-    """Called once during application startup (inside the lifespan)."""
+async def _seed_admin() -> None:
+    email = settings.effective_seed_admin_email
+    password = settings.effective_seed_admin_password
+    full_name = settings.effective_seed_admin_name
 
-    # 1. Run Alembic migrations in a thread to avoid nested-event-loop issues
-    _log("Running database migrations …")
-    try:
-        await asyncio.to_thread(_run_migrations)
-        _log("Migrations applied successfully.")
-    except Exception as exc:
-        _log(f"Migration failed: {exc}")
+    if not email or not password:
+        _log(
+            "No SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD — skipping admin seed. "
+            "Either set them in .env, run `python -m app.cli create-admin ...`, "
+            "or POST /auth/bootstrap before any user is created."
+        )
         return
 
-    # 2. Bootstrap admin if no users exist
     async with async_session() as session:
-        result = await session.execute(select(User).limit(1))
-        if result.scalar_one_or_none() is not None:
-            _log("Users already exist — skipping admin bootstrap.")
-            _log("Setup complete.")
+        admin_q = await session.execute(
+            select(User).where(User.role == UserRole.admin, User.is_active == True)  # noqa: E712
+        )
+        if admin_q.scalars().first() is not None:
+            _log("An active admin already exists — skipping seed.")
             return
 
-        admin_email = settings.bootstrap_admin_email
-        admin_password = settings.bootstrap_admin_password
-        admin_name = settings.bootstrap_admin_name
-
-        if not admin_email or not admin_password:
-            _log(
-                "No users in DB and BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD "
-                "not set. Set them in .env or POST /auth/bootstrap."
-            )
-            _log("Setup complete (no admin created).")
+        # If a user with the configured email already exists, promote it idempotently
+        # rather than fail with a unique-constraint violation.
+        existing_q = await session.execute(select(User).where(User.email == email))
+        existing = existing_q.scalar_one_or_none()
+        if existing is not None:
+            promoted = False
+            if existing.role != UserRole.admin:
+                existing.role = UserRole.admin
+                promoted = True
+            if not existing.is_active:
+                existing.is_active = True
+                promoted = True
+            if promoted:
+                session.add(existing)
+                await session.commit()
+                _log(f"Existing user promoted to active admin: {email}")
+            else:
+                _log(f"User already admin+active: {email} — nothing to do.")
             return
 
         user = User(
-            email=admin_email,
-            hashed_password=hash_password(admin_password),
-            full_name=admin_name,
+            email=email,
+            hashed_password=hash_password(password),
+            full_name=full_name,
             role=UserRole.admin,
         )
         session.add(user)
         await session.commit()
-        _log(f"Created admin user: {admin_email}")
-        _log("Setup complete.")
+        _log(f"Seeded admin user: {email}")
+
+
+async def run_auto_setup() -> None:
+    """Called once during application startup (inside the lifespan)."""
+
+    _log("Running database migrations …")
+    try:
+        await asyncio.to_thread(_run_migrations)
+    except Exception as exc:
+        _log(f"Migration failed: {exc}")
+        # Re-raise so the process exits non-zero and orchestration (Docker
+        # restart policy, k8s CrashLoopBackOff) surfaces the failure instead
+        # of serving traffic on a broken schema.
+        raise
+    _log("Migrations applied successfully.")
+
+    await _seed_admin()
+    _log("Setup complete.")

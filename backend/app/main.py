@@ -19,15 +19,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Astro-Portal CRM API", lifespan=lifespan)
 
+# CORS: explicit origin allow-list. Wildcard is intentionally not supported
+# when allow_credentials is true (browsers reject that combination).
+_cors_origins = settings.cors_origin_list or ["http://localhost:5173", "http://localhost:5174"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount uploaded files
 os.makedirs(settings.upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 

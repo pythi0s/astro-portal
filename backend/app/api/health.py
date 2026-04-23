@@ -1,32 +1,33 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-from app.db.database import get_session
 import time
+
+from fastapi import APIRouter
+from sqlalchemy import text
+
+from app.db.database import engine
 
 router = APIRouter()
 
 
 @router.get("/health/live")
-async def liveness():
+async def liveness() -> dict[str, str]:
     return {"status": "alive"}
 
 
 @router.get("/health/db")
-async def db_health(session: AsyncSession = Depends(get_session)):
+async def db_health() -> dict[str, object]:
     start = time.time()
     try:
-        await session.execute(text("SELECT 1"))
-        latency = round((time.time() - start) * 1000, 2)
-
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "latency_ms": latency,
-        }
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
     except Exception:
         return {
             "status": "unhealthy",
             "database": "disconnected",
             "error": "database connection failed",
         }
+    latency = round((time.time() - start) * 1000, 2)
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "latency_ms": latency,
+    }

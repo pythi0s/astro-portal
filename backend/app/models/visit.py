@@ -50,6 +50,10 @@ class Visit(SQLModel, table=True):
     follow_up_date: Optional[date] = None
     notes: Optional[str] = None
 
+    # Soft-delete flag (Step 3). Default True to keep existing rows visible
+    # after the backfilling migration runs.
+    is_active: bool = Field(default=True)
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

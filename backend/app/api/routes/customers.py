@@ -35,7 +35,7 @@ async def create_customer(
     return customer
 
 
-@router.get("/", response_model=list[CustomerRead])
+@router.get("/", response_model=list[CustomerList])
 async def list_customers(
     search: Optional[str] = Query(None, description="Search by name, phone, or email"),
     is_active: Optional[bool] = Query(None),

@@ -135,10 +135,18 @@ class CustomerRead(BaseModel):
 
 
 class CustomerList(BaseModel):
+    """Slim list-view schema used by GET /customers/. Keeps enough fields for
+    the existing Vue CustomerList view (name, contact, city, rashi, gender,
+    photo, created_at) without touching the relationship columns that cause
+    async-lazy-load errors when serializing a plain `select(Customer)` without
+    `selectinload`.
+    """
+
     id: int
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
+    gender: Optional[Gender] = None
     city: Optional[str] = None
     rashi: Optional[str] = None
     photo_path: Optional[str] = None

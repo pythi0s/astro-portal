@@ -1,4 +1,5 @@
 # app/api/routes/messages.py
+import logging
 from datetime import datetime
 from typing import Optional
 
@@ -21,7 +22,15 @@ from app.schemas.message import (
     TemplateUpdate,
 )
 
+logger = logging.getLogger("uvicorn.error")
+
 router = APIRouter(tags=["messages"])
+
+
+# Generic operator-facing text stored on the log when a provider rejects the send.
+# The real exception (SMTP trace, Twilio error body, etc.) is logged server-side
+# only — never echoed to the API caller to avoid leaking provider config.
+_SANITIZED_SEND_ERROR = "Send failed — see server logs for details."
 
 
 # -- Template CRUD --
@@ -157,7 +166,8 @@ async def send_email(
         sent_at = datetime.utcnow()
     except Exception as e:
         status = MessageStatus.failed
-        error_msg = str(e)
+        error_msg = _SANITIZED_SEND_ERROR
+        logger.exception("send-email failed for customer_id=%s: %s", customer.id, e)
 
     log = MessageLog(
         customer_id=customer.id,
@@ -211,7 +221,8 @@ async def send_whatsapp_message(
         sent_at = datetime.utcnow()
     except Exception as e:
         status = MessageStatus.failed
-        error_msg = str(e)
+        error_msg = _SANITIZED_SEND_ERROR
+        logger.exception("send-whatsapp failed for customer_id=%s: %s", customer.id, e)
 
     log = MessageLog(
         customer_id=customer.id,
