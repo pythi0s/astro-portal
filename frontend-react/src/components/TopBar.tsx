@@ -1,6 +1,8 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
+import { RoleGate } from '@/components/RoleGate';
+import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
@@ -20,17 +22,28 @@ export function TopBar() {
           <Link to="/dashboard" className="text-base font-semibold text-midnight-900">
             Astro Portal
           </Link>
-          <nav aria-label="Primary" className="flex items-center gap-1 text-sm">
+          <nav aria-label="Primary" className="flex flex-wrap items-center gap-1 text-sm">
             <NavItem to="/dashboard" label="Dashboard" />
+            <NavItem to="/customers" label="Customers" />
+            <NavItem to="/visits" label="Visits" />
+            <NavItem to="/solutions" label="Solutions" />
+            <NavItem to="/messages/send" label="Messages" />
+            <NavItem to="/templates" label="Templates" />
+            <RoleGate allow={['admin']}>
+              <NavItem to="/admin/users" label="Admin" />
+            </RoleGate>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-midnight-700">
+          <Link
+            to="/profile"
+            className="rounded-md px-2 py-1 text-midnight-700 hover:bg-midnight-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          >
             {user.full_name || user.email}
             <span className="ml-1 rounded-full bg-midnight-700/10 px-2 py-0.5 text-xs font-medium text-midnight-800">
-              {user.role}
+              {humanizeEnum(user.role)}
             </span>
-          </span>
+          </Link>
           <button
             type="button"
             onClick={onLogout}

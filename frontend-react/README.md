@@ -2,8 +2,9 @@
 
 React + TypeScript + Vite shell for the new Astro Portal UI. Step 2 delivered the
 **auth foundation** (login, persistent session, silent refresh, role guards);
-Step 4 adds the **Revenue Dashboard** at `/dashboard`. Remaining feature pages
-(customers, visits, solutions, messaging, admin) ship in Step 5.
+Step 4 added the **Revenue Dashboard** at `/dashboard`; Step 5 ships the full
+feature surface — customers, visits, solutions, templates, messaging, admin
+user management, and a self-service profile page.
 
 The existing Vue app in `../frontend/` is **unchanged** and continues to serve
 production traffic until this app reaches feature parity.
@@ -21,6 +22,8 @@ production traffic until this app reaches feature parity.
 | Server state     | `@tanstack/react-query` v5 (Step 4)                 |
 | HTTP             | `axios` with interceptor-driven silent refresh      |
 | Charts           | `recharts` (Step 4)                                 |
+| Forms            | `react-hook-form` v7 + `zod` v3 (Step 5)            |
+| Tables           | `@tanstack/react-table` v8 — headless (Step 5)      |
 | Styling          | Tailwind CSS (palette mirrored from `../frontend/`) |
 
 No Redux and no Context for app state. Zustand owns auth; React Query owns
@@ -41,31 +44,28 @@ frontend-react/
 ├── vite.config.ts
 ├── .env.example
 └── src/
-    ├── main.tsx              # React entry; wires RouterProvider
-    ├── AppShell.tsx          # TopBar + AuthProvider + <Outlet/>
-    ├── router.tsx            # Route tree (public / RequireAuth / RequireRole)
+    ├── main.tsx              # React entry: Toast/Confirm/Query/RouterProvider
+    ├── AppShell.tsx          # TopBar + AuthProvider + 403/5xx toast interceptor
+    ├── router.tsx            # Code-split route tree (React.lazy per feature)
     ├── index.css             # Tailwind layers
-    ├── api/
-    │   ├── client.ts         # Axios instance + 401 queue + silent refresh
-    │   └── auth.ts           # login / refresh / me; registers refresh handler
-    ├── auth/
-    │   ├── AuthProvider.tsx  # One-time boot: restore → /auth/me → /auth/refresh
-    │   ├── RequireAuth.tsx   # Route guard: auth-only
-    │   ├── RequireRole.tsx   # Route guard: role-gated
-    │   └── useAuth.ts        # Hook over the Zustand store + auth API
-    ├── components/
-    │   ├── FullPageSpinner.tsx
-    │   └── TopBar.tsx
-    ├── pages/
-    │   ├── Login.tsx
-    │   ├── Home.tsx
-    │   ├── AdminDemo.tsx     # proves RequireRole works; removed in Step 5
-    │   ├── Forbidden.tsx     # /403
-    │   └── NotFound.tsx      # /404
-    ├── stores/
-    │   └── auth.ts           # Zustand store + localStorage persistence
-    └── types/
-        └── api.ts            # Role + User DTOs matching backend schemas
+    ├── api/                  # Shared API plumbing
+    ├── auth/                 # AuthProvider + RequireAuth/RequireRole + useAuth
+    ├── components/           # Shared UI primitives (see "Shared primitives")
+    ├── hooks/                # Cross-cutting hooks (useServerErrorToast)
+    ├── lib/                  # format.ts, urlState.ts, apiErrors.ts
+    ├── features/             # One folder per domain (Step 5)
+    │   ├── customers/        # pages, components, api, schema, hooks, queryKeys
+    │   ├── visits/
+    │   ├── solutions/
+    │   ├── templates/
+    │   ├── messages/
+    │   ├── admin/
+    │   ├── profile/
+    │   └── dashboard/        # Step 4 revenue dashboard
+    ├── providers/            # QueryProvider (TanStack)
+    ├── pages/                # App-level pages (Login, Home, 403, 404)
+    ├── stores/               # Zustand auth store
+    └── types/                # api.ts (Role + User DTOs)
 ```
 
 ---
@@ -163,8 +163,8 @@ Manual smoke tests against a live backend:
    user is redirected to `/`; TopBar shows name + role badge.
 2. **Persistent session:** Reload the page → **no flash of `/login`**; the
    spinner renders briefly, then `/` renders with the same user.
-3. **Role guard:** As `admin`, visit `/admin-demo` → renders. Sign out, sign in
-   as `astrologer`, visit `/admin-demo` → redirected to `/403`.
+3. **Role guard:** As `admin`, visit `/admin/users` → renders. Sign out, sign in
+   as `astrologer`, visit `/admin/users` → redirected to `/403`.
 4. **Silent refresh:** Set `ACCESS_TOKEN_EXPIRE_MINUTES=1` in `backend/.env`,
    restart backend, stay on the app for >60 s, then click around. DevTools
    Network tab shows exactly **one** `POST /auth/refresh` followed by the
@@ -232,3 +232,121 @@ its data from the new Step 3 endpoints:
 - **Vitest + React Testing Library + MSW tests** — test scaffolding is in `devDependencies`; suites ship in Step 6 alongside the setup hardening that also validates the docker/alembic path.
 - **Bundle-size measurement + Lighthouse score** — require a `vite build` on the target machine. Measure on the Docker test box and record in `docs/step-04-changelog.md` when available.
 - **Staff collection breakdown** — backend endpoint `NEW-03` was deferred in Step 3; the panel is a placeholder that still enforces the `hasRole('admin')` gate.
+
+---
+
+## Step 5 — Feature pages
+
+Step 5 adds the full working UI for every backend domain. Pages are code-split
+(each feature lazy-loaded via `React.lazy`) and share a small set of primitives
+to keep the surface consistent.
+
+### Route map
+
+| Path | Page | Gate |
+| --- | --- | --- |
+| `/` | redirect → `/dashboard` | auth |
+| `/dashboard` | Revenue dashboard (Step 4) | auth |
+| `/profile` | Self-service profile + change password | auth |
+| `/customers` | Customer list (search, page, filter) | auth |
+| `/customers/new` | Create customer | auth |
+| `/customers/:id` | Detail (Details / Timeline / Solutions / Visits tabs) | auth |
+| `/customers/:id/edit` | Edit customer + photo/kundali upload | auth |
+| `/visits` | Visit list + filter bar | auth |
+| `/visits/new` | New visit (pre-fills `?customer_id=…`) | auth |
+| `/visits/:id` | Visit detail | auth |
+| `/visits/:id/edit` | Edit visit | auth |
+| `/solutions` | Card grid list | auth |
+| `/solutions/new` | New solution | auth |
+| `/solutions/:id/edit` | Edit / deactivate solution | auth |
+| `/templates` | Template list (Email / WhatsApp tabs) | auth |
+| `/templates/new` | New template (with live placeholder preview) | auth |
+| `/templates/:id/edit` | Edit / deactivate template | auth |
+| `/messages/send` | Send email or WhatsApp (channel tabs) | auth |
+| `/messages/log` | Outbound message log | auth |
+| `/admin/users` | User management list + KPIs | admin |
+| `/admin/users/new` | Create user | admin |
+| `/admin/users/:id` | Edit / deactivate user | admin |
+
+### Shared primitives (`src/components/` + `src/lib/`)
+
+- `PageHeader`, `Breadcrumbs`, `EmptyState`, `Skeleton`, `Tabs`, `RoleGate`
+- `Button` / `LinkButton`, `SearchInput` (debounced), `FormField` (TextField,
+  TextArea, SelectField, FormRootError)
+- `DataTable` + `Pagination` — headless TanStack Table wrapper with loading
+  skeletons, empty states, and row-level keyboard navigation
+- `Toast` + `useToast` and `ConfirmProvider` + `useConfirm` for global
+  notifications and destructive-action confirmations
+- `useUrlState` (URL-as-source-of-truth) drives every list page
+- `applyServerErrors` maps FastAPI 422 bodies onto `react-hook-form` fields;
+  `errorMessage` extracts a single string for toasts
+- `useServerErrorToast` mounts one global interceptor in `AppShell` that turns
+  403/5xx responses into toasts (401 is still owned by the silent-refresh
+  interceptor in `api/client.ts`)
+
+### Per-feature layout
+
+Every domain under `src/features/<name>/` follows the same shape:
+
+```
+types.ts          # DTOs mirroring backend schemas
+queryKeys.ts      # TanStack Query key factory
+schema.ts         # Zod schema + toApiPayload helpers
+api.ts            # Axios wrappers (use @/api/client)
+hooks/use*.ts     # useQuery / useMutation facades
+components/       # Domain-specific UI
+pages/            # Route-level pages (lazy-loaded from router.tsx)
+__tests__/        # Vitest unit tests (schema coverage at minimum)
+```
+
+### Key design choices
+
+- **URL-first state.** Every list page stores filters, search, page, and sort
+  in the query string via `useUrlState`, so bookmarks and hard refreshes
+  restore the exact view and queries are cacheable per-URL.
+- **Server is authoritative.** `RoleGate` hides admin-only UI in the DOM, but
+  every mutation is still role-checked server-side. `403` and `5xx` responses
+  surface as toasts via `useServerErrorToast`; `401` is owned by the refresh
+  interceptor.
+- **Money goes through `formatMoney`.** All money rendering funnels through
+  `@/lib/format`. Change `VITE_CURRENCY` to flip the entire UI.
+- **Forms are Zod-validated.** Client-side with `zod`, server-side errors
+  merged via `applyServerErrors`. Submit buttons disable while pending and
+  show an inline spinner label; success/failure surfaces as a toast.
+- **Lists use TanStack Table (headless)** behind `<DataTable>` so we can
+  standardise sorting, keyboard navigation, loading skeletons, and empty
+  states without re-implementing them per page.
+
+### Manual verification checklist (Step 5)
+
+1. Sign in as admin. TopBar shows links for every domain, plus `Admin`.
+2. `/customers` list: search, paginate, switch active/inactive/all. URL
+   reflects every change. Refresh restores the filter.
+3. `/customers/new` → create. On 422, field-level errors appear. On success, a
+   toast fires and we navigate to the detail page.
+4. Customer detail: Details / Timeline / Solutions / Visits tabs switch via
+   `?tab=`. Edit → Photo upload preview replaces after `/uploads/...` URL
+   resolves. Kundali upload shows a link to the stored file.
+5. `/visits` list: filter by customer, payment status, date range. "Include
+   inactive" toggles the `is_active=false` column on. New visit with
+   `?customer_id=7` locks the customer field.
+6. `/solutions` grid: search + category filter + active/inactive/all. New +
+   edit both work. Deactivate requires a confirm dialog.
+7. `/templates` list: Email / WhatsApp tabs. The editor shows a live
+   placeholder preview that matches what the backend will render.
+8. `/messages/send` Email tab: with a template → subject/body go read-only.
+   WhatsApp tab: template required. Send → status toast. Failed sends do not
+   echo provider traces (matches Step 3 sanitisation).
+9. `/messages/log` paginates newest-first; `customer_id` filter works.
+10. `/admin/users` (admin only): KPI cards, role + status filter. Create user
+    → redirects to detail. Edit user → save is disabled when nothing changed.
+    You cannot deactivate yourself (button is hidden).
+11. `/profile` (any role): update name/phone → TopBar reflects the new name.
+    Change password → wrong current password renders inline error; matching
+    new + confirm and min-length pass.
+12. Sign in as astrologer → TopBar hides the Admin link. Visiting
+    `/admin/users` directly redirects to `/403`.
+13. Code-splitting: DevTools Network tab shows a per-domain chunk loads only
+    when you navigate to that domain.
+14. `npm run typecheck` and `npm run build` both pass.
+15. `npm run test` — schema tests pass for every domain.

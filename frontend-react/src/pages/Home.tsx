@@ -1,10 +1,17 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/auth/useAuth';
+import { humanizeEnum } from '@/lib/format';
 
+/**
+ * Legacy landing page. The app redirects `/` to `/dashboard`, so this is
+ * rarely rendered directly — it stays as a simple account summary linked
+ * from the top bar for debugging and as a soft landing for first-time
+ * users before the dashboard loads.
+ */
 export function Home() {
   const { user, hasRole } = useAuth();
 
-  if (!user) return null; // guarded by RequireAuth; defensive.
+  if (!user) return null;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -13,28 +20,39 @@ export function Home() {
           Welcome {user.full_name || user.email}
         </h1>
         <p className="mt-1 text-sm text-midnight-700">
-          Role: <span className="font-medium">{user.role}</span>
+          Role: <span className="font-medium">{humanizeEnum(user.role)}</span>
         </p>
         <p className="mt-4 text-sm text-midnight-700">
-          Auth foundation is live. Feature pages land in Steps 4 and 5.
+          Jump to the parts of the portal you use most often.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            to="/admin-demo"
-            className="rounded-md bg-midnight-800 px-4 py-2 text-sm font-medium text-white hover:bg-midnight-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-midnight-800"
+            to="/dashboard"
+            className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
           >
-            Visit admin-only route
+            Revenue dashboard
+          </Link>
+          <Link
+            to="/customers"
+            className="rounded-md border border-midnight-200 bg-white px-4 py-2 text-sm font-medium text-midnight-800 hover:bg-midnight-700/5"
+          >
+            Customers
+          </Link>
+          <Link
+            to="/visits"
+            className="rounded-md border border-midnight-200 bg-white px-4 py-2 text-sm font-medium text-midnight-800 hover:bg-midnight-700/5"
+          >
+            Visits
           </Link>
           {hasRole('admin') ? (
-            <span className="inline-flex items-center rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-700">
-              Admin access
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full bg-midnight-700/10 px-3 py-1 text-xs font-medium text-midnight-700">
-              Standard access
-            </span>
-          )}
+            <Link
+              to="/admin/users"
+              className="rounded-md bg-midnight-900 px-4 py-2 text-sm font-medium text-white hover:bg-midnight-800"
+            >
+              Manage users
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
