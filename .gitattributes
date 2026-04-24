@@ -1,0 +1,31 @@
+# Shell scripts must always land with LF endings, regardless of the host
+# git/core.autocrlf setting. Docker images built from this repo run inside
+# Alpine or Debian shells that choke on CRLF (`/bin/sh^M: bad interpreter`).
+# Without this, a checkout on Windows can silently produce an image that
+# exits immediately with no useful error.
+*.sh              text eol=lf
+*.bash            text eol=lf
+backend/docker-entrypoint.sh       text eol=lf
+backend/docker-entrypoint-worker.sh text eol=lf
+ops/bootstrap/ready.sh             text eol=lf
+scripts/db.sh                      text eol=lf
+backend/scripts/db.sh              text eol=lf
+
+# Dockerfiles, compose files, .env templates, and SQL must also be LF.
+Dockerfile        text eol=lf
+*.Dockerfile      text eol=lf
+docker-compose*.yml text eol=lf
+*.yml             text eol=lf
+*.yaml            text eol=lf
+*.sql             text eol=lf
+.env.example      text eol=lf
+
+# Binary assets are treated as-is.
+*.png             binary
+*.jpg             binary
+*.jpeg            binary
+*.gif             binary
+*.ico             binary
+*.pdf             binary
+*.woff            binary
+*.woff2           binary
