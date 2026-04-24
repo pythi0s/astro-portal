@@ -1,0 +1,165 @@
+name: CI
+
+# Runs on every push and every pull request. Four independent jobs:
+#   - frontend-react: typecheck, test, build the React app.
+#   - frontend-vue:   build the legacy Vue app as a smoke test.
+#   - backend:        ruff + alembic upgrade head against a service Postgres.
+#   - compose:        `docker compose config` validation against the root .env.
+# None of them require secrets; a fresh runner on `ubuntu-latest` is enough.
+
+on:
+  push:
+    branches: [main, intuitive-design, astro-cursor-test]
+  pull_request:
+
+# Cancel in-progress runs for the same ref when a new commit lands. CI should
+# always reflect the tip of the branch, not a stale queue.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-react:
+    name: frontend-react (typecheck + test + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astro-portal/frontend-react
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          # package-lock.json is not committed yet; once it is, add
+          # `cache: npm` with `cache-dependency-path` pointing at it.
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit + interaction tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-react-dist
+          path: astro-portal/frontend-react/dist
+          if-no-files-found: ignore
+          retention-days: 3
+
+  frontend-vue:
+    name: frontend (Vue build smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astro-portal/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: backend (ruff + alembic upgrade head)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astro-portal/backend
+    # Spin up Postgres 18 as a service so alembic has a real database to hit.
+    # Redis is not needed for this job; celery is only exercised in the
+    # with-celery profile and has no migrations.
+    services:
+      db:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: crm_user
+          POSTGRES_PASSWORD: crm_password
+          POSTGRES_DB: crm_database
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U crm_user -d crm_database"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://crm_user:crm_password@localhost:5432/crm_database
+      SECRET_KEY: ci-secret-key-not-used-in-production
+      # Turn off the login rate limiter to keep any future auth tests from
+      # flaking in CI (Step 3 default is 5 attempts per 900 s per IP).
+      LOGIN_RATE_LIMIT_MAX_ATTEMPTS: "0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
+          enable-cache: true
+          cache-dependency-glob: astro-portal/backend/uv.lock
+
+      - name: Install dependencies (frozen)
+        run: uv sync --frozen
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Alembic upgrade head (against service Postgres)
+        run: uv run alembic upgrade head
+
+      - name: Alembic current (prints revision)
+        run: uv run alembic current
+
+      - name: Smoke-test CLI seed (idempotent no-op when env unset)
+        run: uv run python -m app.cli seed-admin-if-missing
+
+  compose:
+    name: compose config validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: astro-portal
+    steps:
+      - uses: actions/checkout@v4
+
+      # `docker compose config` fully evaluates the YAML + every interpolation
+      # against the .env we hand it, so any typo in env_file paths, unused
+      # ${VAR}, or invalid healthcheck shape fails here instead of at runtime.
+      - name: Prepare .env from .env.example
+        run: |
+          cp .env.example .env
+          # Replace the required-placeholder secrets with CI-safe values so the
+          # SEED_ADMIN_PASSWORD line is not the literal placeholder in logs.
+          sed -i 's/^SECRET_KEY=.*/SECRET_KEY=ci-secret/' .env
+          sed -i 's/^SEED_ADMIN_PASSWORD=.*/SEED_ADMIN_PASSWORD=ci-admin-password/' .env
+
+      - name: Validate default profile
+        run: docker compose config --quiet
+
+      - name: Validate with-celery profile
+        run: docker compose --profile with-celery config --quiet
+
+      - name: Validate with-nginx profile
+        run: docker compose --profile with-nginx config --quiet

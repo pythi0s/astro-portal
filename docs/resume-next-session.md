@@ -3,7 +3,7 @@
 This doc is the single entry point for picking up implementation work on the
 `astro-cursor-test` branch. Read this first, then the referenced changelogs.
 
-## Where we are (Step 6 complete, locally)
+## Where we are (Steps 1–7 shipped, locally)
 
 | Step | Status | Details |
 | ---- | ------ | ------- |
@@ -13,11 +13,15 @@ This doc is the single entry point for picking up implementation work on the
 | 4 — Revenue dashboard (React) | **Done, not runtime-validated** | [`docs/step-04-changelog.md`](./step-04-changelog.md) |
 | 5 — Feature pages (React) | **Done, not runtime-validated** | [`docs/step-05-changelog.md`](./step-05-changelog.md) |
 | 6 — Seamless setup (Docker, Alembic, bootstrap banner) | **Done, not runtime-validated** | [`docs/step-06-changelog.md`](./step-06-changelog.md) |
+| 7 — CI + interaction test scaffolding | **Done, CI-validated on first push** | [`docs/step-07-ci-hardening.md`](./step-07-ci-hardening.md) |
 
-All six steps are shipped. None of Steps 3–6 have been booted on real Docker;
+All seven steps are shipped. None of Steps 3–6 have been booted on real Docker;
 the authoring host has neither Docker nor Node nor Python installed. Step 6's
 whole point is to make that first boot trivial, so the very first thing the
-next human operator does is run it.
+next human operator does is run it. Step 7 adds a GitHub Actions workflow that
+runs on every push/PR and exercises migrations + compose config + the React
+build/test suite — so CI will see real failures even while the local-dev
+validation is still pending.
 
 ## Three-command first-run flow (what Step 6 delivers)
 
@@ -116,24 +120,32 @@ at `http://localhost:5174`.
   `frontend-react`. `bootstrap` depends on all three of the latter with
   `condition: service_healthy`.
 
-## Still pending after Step 6
+## Still pending after Step 7
 
-- **Runtime validation of Steps 3–6.** Everything above is the plan; the
-  first human on a Docker box is the first person to see it actually work.
-- **Interaction tests (MSW + RTL).** Deferred from Step 5; `devDependencies`
-  in `frontend-react/package.json` already declare the scaffolding
-  (`@testing-library/react`, `@testing-library/user-event`, `msw`, `jsdom`,
-  `vitest`). Worth adding during the first "everything works, now harden it"
-  pass.
-- **CI workflow.** Not part of the strict Step 6 scope (the prompt focused on
-  first-run ergonomics); a GitHub Actions file that runs `npm run build`,
-  `npm run test`, `uv run alembic upgrade head` against a service Postgres,
-  and `docker compose config` is the obvious next step once the stack is
-  proven locally.
-- **nginx reverse-proxy routes for the React app.** Today nginx proxies only
-  the Vue frontend at `/`; the React app is reachable directly at `:5174`.
-  Either proxy React at `/app/` or replace Vue at `/` when the Vue app is
-  deprecated — out of scope for Step 6.
+- **Runtime validation of Steps 3–6 on Docker.** Everything above is the plan;
+  the first human on a Docker box is the first person to see it actually work.
+  Run the three-command flow from the Step 6 block above, capture the
+  time-to-READY, and update `docs/step-06-changelog.md` §"Verification".
+- **First CI push.** The GitHub Actions workflow from Step 7
+  (`.github/workflows/ci.yml`) has never run. On push to `astro-cursor-test`
+  or any PR, four jobs should go green: `frontend-react`, `frontend-vue`,
+  `backend`, `compose`. Any failures on first run should be fixed with a
+  follow-up commit (not an amend) so the CI failure history is audit-able.
+- **More interaction tests.** Step 7 ships the scaffolding
+  (`src/test/renderWithProviders.tsx`, `src/test/msw.ts`) and one worked
+  example (`src/pages/__tests__/Login.test.tsx`). Extend to customers,
+  visits, dashboard, and admin pages following the same pattern. Each new
+  test only needs to add its own MSW handlers for the endpoints the page
+  under test calls — the default handlers cover auth.
+- **nginx reverse-proxy routes for the React app.** Requires a two-sided
+  fix: `frontend-react/vite.config.ts` needs `base: '/app/'` and the nginx
+  `location /app/` block needs matching rewrites. Documented as a TODO
+  comment in `nginx/default.conf` above the server block. A half-day of
+  work with runtime testing required.
+- **Package lockfiles.** Neither frontend has a `package-lock.json`
+  committed. Once each frontend is built and `npm install` resolves cleanly,
+  commit the generated lockfile and enable `cache: npm` in
+  `.github/workflows/ci.yml` (two one-line additions).
 
 ## Known hazards to remember
 
@@ -169,11 +181,14 @@ at `http://localhost:5174`.
 git log --oneline origin/intuitive-design..astro-cursor-test
 ```
 
-should end with a Step 6 commit on top of the Step 5 block:
+should end with Step 7 on top of Step 6 + Step 5:
 
 ```
-(step 6)  Step 6: seamless Docker first-run (entrypoint, healthchecks, READY sidecar)
-(step 5)  Step 5: React feature pages (customers, visits, solutions, templates, messages, admin, profile)
+(step 7)  Step 7: CI workflow + MSW interaction test scaffolding
+b733630   Step 6: seamless Docker first-run (entrypoint, healthchecks, READY sidecar)
+4d976f3   Step 5 phases D-I: solutions, templates, messages, admin, profile + wiring
+fce4f4a   Step 5 phase B+C: customers and visits domains
+ad35fae   Step 5 phase A: shared primitives + format promotion
 2718679   docs: add resume-next-session handoff notes
 8040991   Step 4: React revenue dashboard
 05c07ac   Step 3: backend hardening and new dashboard revenue endpoints
