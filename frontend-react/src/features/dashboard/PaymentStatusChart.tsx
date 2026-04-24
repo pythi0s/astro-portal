@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import type { RevenueSummary } from '@/features/dashboard/types';
-import { formatMoney, toNumber } from '@/features/dashboard/lib/format';
+import { formatMoney, toNumber } from '@/lib/format';
 import { PanelShell } from '@/features/dashboard/PanelShell';
 
 interface Props {

@@ -4,6 +4,8 @@ import { RouterProvider } from 'react-router-dom';
 
 import { router } from '@/router';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { ToastProvider } from '@/components/Toast';
+import { ConfirmProvider } from '@/components/ConfirmProvider';
 
 import '@/api/auth';
 import '@/index.css';
@@ -15,8 +17,12 @@ if (!rootEl) {
 
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
-    <QueryProvider>
-      <RouterProvider router={router} />
-    </QueryProvider>
+    <ToastProvider>
+      <ConfirmProvider>
+        <QueryProvider>
+          <RouterProvider router={router} />
+        </QueryProvider>
+      </ConfirmProvider>
+    </ToastProvider>
   </React.StrictMode>,
 );

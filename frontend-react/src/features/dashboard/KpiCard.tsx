@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { deltaPercent, formatDeltaLabel } from '@/features/dashboard/lib/format';
+import { deltaPercent, formatDeltaLabel } from '@/lib/format';
 
 interface Props {
   label: string;

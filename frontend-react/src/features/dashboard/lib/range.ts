@@ -1,5 +1,5 @@
 import type { DateRange, Granularity, Preset } from '@/features/dashboard/types';
-import { toIsoDate } from '@/features/dashboard/lib/format';
+import { toIsoDate } from '@/lib/format';
 
 export const PRESETS: ReadonlyArray<{ id: Preset; label: string; days: number }> = [
   { id: '7D', label: '7D', days: 7 },

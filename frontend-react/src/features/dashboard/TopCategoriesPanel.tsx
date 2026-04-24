@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { RevenueByCategory } from '@/features/dashboard/types';
-import { formatMoney, humanizeCategory, toNumber } from '@/features/dashboard/lib/format';
+import { formatMoney, humanizeCategory, toNumber } from '@/lib/format';
 import { PanelShell } from '@/features/dashboard/PanelShell';
 
 interface Props {

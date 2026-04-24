@@ -5,7 +5,7 @@ import {
   formatMoney,
   formatPercent,
   toNumber,
-} from '@/features/dashboard/lib/format';
+} from '@/lib/format';
 
 interface Props {
   current: RevenueSummary | undefined;

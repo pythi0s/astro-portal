@@ -1,20 +1,20 @@
 /**
- * Locale- and currency-aware formatting helpers for the Revenue Dashboard.
+ * Locale- and currency-aware formatting helpers.
  *
  * Money is NEVER rendered with string concatenation or a hardcoded currency
  * symbol in the codebase. Every number-to-text conversion for money goes
  * through `formatMoney` so that changing `VITE_CURRENCY` flips the whole UI.
+ *
+ * Promoted from `features/dashboard/lib/format.ts` in Step 5 so the feature
+ * pages (customers, visits, etc.) can share one source of truth.
  */
 
 function getCurrency(): string {
-  // Read lazily: Vite inlines import.meta.env at build time, so this is safe
-  // to call at render time without causing extra work.
   const v = (import.meta.env.VITE_CURRENCY as string | undefined)?.trim();
   return v && v.length === 3 ? v.toUpperCase() : 'INR';
 }
 
 function getLocale(): string {
-  // Use the browser locale for presentation. The backend is locale-agnostic.
   if (typeof navigator !== 'undefined' && navigator.language) {
     return navigator.language;
   }
@@ -77,11 +77,14 @@ export function formatDeltaLabel(delta: number | undefined): string {
 }
 
 export function formatDate(iso: string, opts?: Intl.DateTimeFormatOptions): string {
-  // Treat YYYY-MM-DD as a local date (append T00:00 to avoid TZ drift).
   const source = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso;
   const d = new Date(source);
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat(getLocale(), opts ?? { dateStyle: 'medium' }).format(d);
+}
+
+export function formatDateTime(iso: string): string {
+  return formatDate(iso, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 /** Convert a Date to ISO YYYY-MM-DD in the user's local time zone. */
@@ -92,9 +95,18 @@ export function toIsoDate(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-/** Human label for a solution category, turning `__unassigned__` into "Unassigned". */
+/** Human label for a snake_case or __marker__ value. */
 export function humanizeCategory(value: string): string {
   if (value === '__unassigned__') return 'Unassigned';
   const spaced = value.replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
+ * Turn a snake_case enum value into a human sentence-case label.
+ * "first_visit" -> "First visit", "follow_up" -> "Follow up".
+ */
+export function humanizeEnum(value: string | null | undefined): string {
+  if (!value) return '—';
+  return humanizeCategory(value);
 }

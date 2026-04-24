@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Link } from 'react-router-dom';
 import type { VisitSummary } from '@/features/dashboard/types';
-import { formatDate, formatMoney } from '@/features/dashboard/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
 import { PanelShell } from '@/features/dashboard/PanelShell';
 
 interface Props {
