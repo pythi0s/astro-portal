@@ -13,8 +13,64 @@ This doc is the single entry point for picking up implementation work on the
 | 4 — Revenue dashboard (React) | **Done, not runtime-validated** | [`docs/step-04-changelog.md`](./step-04-changelog.md) |
 | 5 — Feature pages (React) | **Done, not runtime-validated** | [`docs/step-05-changelog.md`](./step-05-changelog.md) |
 | 6 — Seamless setup (Docker, Alembic, bootstrap banner) | **Done, not runtime-validated** | [`docs/step-06-changelog.md`](./step-06-changelog.md) |
-| 7 — CI + interaction test scaffolding | **Done, pending CI first-run** | [`docs/step-07-ci-hardening.md`](./step-07-ci-hardening.md) |
-| 8 — nginx /app/ proxy (opt-in) + Dashboard/Customers/Admin interaction tests | **Done, not runtime-validated** | [`docs/step-08-nginx-tests.md`](./step-08-nginx-tests.md) |
+| 7 — CI + interaction test scaffolding | **Done, CI green on `astro-cursor-test`** | [`docs/step-07-ci-hardening.md`](./step-07-ci-hardening.md) |
+| 8 — nginx /app/ proxy (opt-in) + Dashboard/Customers/Admin interaction tests | **Done, CI green on `astro-cursor-test`** | [`docs/step-08-nginx-tests.md`](./step-08-nginx-tests.md) |
+
+### CI status
+
+The GitHub Actions `ci.yml` workflow has been booted and stabilised on
+`astro-cursor-test`. Run [#6 (`7ed715b`)](https://github.com/pythi0s/astro-portal/actions/runs/24884028452)
+is the first fully-green run; it covers all four jobs:
+
+| Job | Duration | Notes |
+| --- | --- | --- |
+| `frontend-react (typecheck + test + build)` | ~47 s | tsc + vitest (6 interaction tests across 4 files) + vite build |
+| `frontend (Vue build smoke)`                | ~16 s | legacy Vue `npm run build` |
+| `backend (ruff + alembic upgrade head)`     | ~25 s | ruff lint + alembic upgrade against a postgres service |
+| `compose config validation`                 | ~5 s  | `docker compose config` schema check |
+
+The stabilisation took five follow-up commits after the initial Step 7 push
+(see [`docs/step-09-ci-stabilisation.md`](./step-09-ci-stabilisation.md) for
+the full diagnosis of each):
+
+1. **`working-directory` fix** — CI was running from `astro-portal/astro-portal/`
+   because the workflow assumed a nested layout. Dropped the redundant prefix
+   in every job.
+2. **Vite client types** — `tsc` failed on `import.meta.env` until
+   `frontend-react/src/vite-env.d.ts` added `/// <reference types="vite/client" />`
+   plus an `ImportMetaEnv` declaration for `VITE_BACKEND_URL`, `VITE_BASE`,
+   `VITE_CURRENCY`.
+3. **Backend ruff cleanup (411 → 0)** — `backend/pyproject.toml` gained
+   `[tool.ruff.lint]` config, `extend-exclude = ["alembic/versions"]`,
+   `per-file-ignores` for `alembic/env.py` and `__init__.py`, and
+   `flake8-bugbear.extend-immutable-calls` for FastAPI's `Depends`/`Query`/etc.
+   Ruff autofixes + hand fixes modernised `Optional[X]` → `X | None`,
+   `class Foo(str, Enum)` → `class Foo(StrEnum)`, `raise ... from exc`,
+   long-line wraps, and `Union[...]` → `X | Y | Z`.
+4. **RTL cleanup** — `src/test/setup.ts`'s `afterEach` now calls
+   `cleanup()` from `@testing-library/react` explicitly (vitest with
+   `globals: false` doesn't auto-clean). Without this, DOM leaked between
+   tests and caused "multiple elements found" / stale-input failures in
+   Login, CustomerListPage, and UserListPage tests.
+5. **Test matcher + MSW handler cleanup** — `UserListPage.test.tsx` uses
+   `findByText(/^admins$/i)` (exact) so the stats card matches without
+   clashing with the page subtitle. `Dashboard.test.tsx` uses a single
+   `/dashboard/revenue` mock (no query-param switching) and re-queries the
+   KPI list inside every `waitFor` to avoid stale DOM refs after React
+   Query re-renders.
+6. **jsdom ResizeObserver polyfill** — the last failure (Dashboard test
+   showing an empty `<body><div/></body>`) was Recharts'
+   `<ResponsiveContainer>` calling `new ResizeObserver(...)` under jsdom.
+   With no error boundary, React 18 unmounted the entire root on the
+   `ReferenceError`. Fix: noop `ResizeObserver` (and `matchMedia`) stubs
+   on `globalThis` in `src/test/setup.ts`, guarded so real browsers are
+   unaffected.
+
+Warnings in the green run are all environmental and safe to ignore:
+Node.js 20 deprecation notices from `actions/checkout@v4` / `setup-node@v4`
+/ `setup-python@v5` / `setup-uv@v3` (force-to-Node-24 starts June 2026) and
+a transient GitHub cache-service 400 that the `actions/cache` step survives
+by falling back to a cache miss.
 
 All eight steps are shipped. None of Steps 3–6 have been booted on real Docker;
 the authoring host has neither Docker nor Node nor Python installed. Step 6's
@@ -123,32 +179,32 @@ at `http://localhost:5174`.
   `frontend-react`. `bootstrap` depends on all three of the latter with
   `condition: service_healthy`.
 
-## Still pending after Step 8
+## Still pending after Step 9 (CI stabilisation)
 
 - **Runtime validation of Steps 3–6 on Docker.** Everything above is the plan;
   the first human on a Docker box is the first person to see it actually work.
   Run the three-command flow from the Step 6 block above, capture the
   time-to-READY, and update `docs/step-06-changelog.md` §"Verification".
-- **First CI push.** The GitHub Actions workflow from Step 7
-  (`.github/workflows/ci.yml`) has never run. On push to `astro-cursor-test`
-  or any PR, four jobs should go green: `frontend-react` (now with three
-  additional interaction test files), `frontend-vue`, `backend`, `compose`.
-  Any failures on first run should be fixed with a follow-up commit (not an
-  amend) so the CI failure history is audit-able.
 - **Runtime validation of the nginx `/app/` flow** — see the verification
   checklist in [`docs/step-08-nginx-tests.md`](./step-08-nginx-tests.md). The
   opt-in is safe (default flow unchanged) but Vite HMR over nginx websocket
   upgrade is the one code path that often surprises on first boot.
 - **Still more interaction tests.** Dashboard, customer list, and admin
-  user list are covered. Visits, solutions, templates, messages, and
-  profile remain. Follow the same pattern as the three new test files; no
-  new scaffolding is needed.
+  user list are covered. Visits (list + detail + form), solutions (list +
+  form), templates (list + form), messages (list + send form), and profile
+  remain. Follow the same pattern as the three existing test files; no
+  new scaffolding is needed (MSW, `renderWithProviders`, and the jsdom
+  polyfills all already exist).
 - **Package lockfiles.** Neither frontend has a `package-lock.json`
   committed. The authoring host does not have npm available (only Cursor's
-  internal `node.exe` helper, which lacks npm). Once CI produces the first
-  green build, grab the `package-lock.json` it generates and commit it,
-  then enable `cache: npm` in `.github/workflows/ci.yml` (two one-line
-  additions in each frontend job).
+  internal `node.exe` helper, which lacks npm). Grab the generated
+  lockfiles from the green CI run's workspace (or commit them from any
+  dev box with npm installed), then enable `cache: npm` +
+  `cache-dependency-path` in `.github/workflows/ci.yml` (two one-line
+  additions in each frontend job) to shave ~15–20 s off every CI run.
+- **Optional.** `RequireAuth` / `RequireRole` unit tests and Playwright
+  screenshot tests are both useful but not blocking. Neither has a
+  corresponding hook in the existing test pipeline yet.
 
 ## Known hazards to remember
 
