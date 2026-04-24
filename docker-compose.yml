@@ -123,6 +123,9 @@ services:
     environment:
       VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://backend:8000}
       VITE_CURRENCY: ${VITE_CURRENCY:-INR}
+      # When unset, Vite defaults to base='/'. Operators can set VITE_BASE=/app/
+      # in .env to move the React app under a subpath for the nginx profile.
+      VITE_BASE: ${VITE_BASE:-/}
     volumes:
       - ./frontend-react:/app
       - /app/node_modules
@@ -131,8 +134,11 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    # Healthcheck must hit the same path Vite serves the app at. `$${VAR}`
+    # escapes compose interpolation so the container shell expands VITE_BASE
+    # at runtime; defaults to '/' if unset.
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:5174/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:5174$${VITE_BASE:-/} >/dev/null 2>&1 || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -148,7 +154,9 @@ services:
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
       BACKEND_HEALTH_URL: http://backend:8000/health?deep=1
       API_PUBLIC_URL: http://localhost:8000
-      FRONTEND_REACT_PUBLIC_URL: http://localhost:5174
+      # Banner URL respects VITE_BASE so operators following the with-nginx
+      # flow see the correct /app/ suffix without having to hand-edit.
+      FRONTEND_REACT_PUBLIC_URL: http://localhost:5174${VITE_BASE:-/}
       FRONTEND_VUE_PUBLIC_URL: http://localhost:5173
     depends_on:
       backend:

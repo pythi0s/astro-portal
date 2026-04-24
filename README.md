@@ -179,7 +179,10 @@ Subsequent starts are no-ops for migrations and seeding: the entrypoint logs "ad
 | API Docs       | http://localhost:8000/docs       |
 | Health (fast)  | http://localhost:8000/health     |
 | Health (deep)  | http://localhost:8000/health?deep=1 |
-| With Nginx     | http://localhost (port 80)       |
+| With Nginx (Vue) | http://localhost (port 80)     |
+| With Nginx (React) | http://localhost/app/ (requires `VITE_BASE=/app/`) |
+
+> **Reverse-proxying the React app under a subpath** (e.g. `/app/`) requires setting `VITE_BASE=/app/` in `.env`. Vite then serves every asset + the HMR WebSocket under that prefix, and the nginx `/app/` `location` block in `nginx/default.conf` forwards verbatim. With VITE_BASE set, the React app is reachable at both `http://localhost:5174/app/` (direct) and `http://localhost/app/` (via nginx). Without `VITE_BASE`, nginx `/app/` returns 404.
 
 ### `./scripts/db.sh` — power-user operations
 
