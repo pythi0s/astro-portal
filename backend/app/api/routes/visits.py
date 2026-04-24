@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,10 +44,10 @@ async def create_visit(
 
 @router.get("/", response_model=list[VisitRead])
 async def list_visits(
-    customer_id: Optional[int] = Query(None),
-    payment_status: Optional[str] = Query(None),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    customer_id: int | None = Query(None),
+    payment_status: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     include_inactive: bool = Query(False, description="If true, include soft-deleted visits"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),

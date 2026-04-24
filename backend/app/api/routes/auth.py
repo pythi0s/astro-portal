@@ -24,6 +24,11 @@ from app.schemas.auth import (
     UserUpdate,
 )
 
+# Module-level dependency singleton so the bugbear B008 rule doesn't flag the
+# inline `Depends(require_role([...]))` default (function calls in defaults are
+# the FastAPI idiom, but ruff can't distinguish this from a heavier call).
+_require_admin = require_role([UserRole.admin])
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -61,7 +66,7 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
 async def register(
     body: UserCreate,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(require_role([UserRole.admin])),
+    current_user: User = Depends(_require_admin),
 ):
     """Deprecated — prefer POST /admin/users. Kept for backward compatibility with
     the existing Vue frontend. Will be removed in a future release.
@@ -113,9 +118,15 @@ async def change_password(
 ) -> None:
     if not verify_password(body.current_password, current_user.hashed_password):
         # Neutral detail: no side-channel on whether the account has a password set.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
     if body.new_password == body.current_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must differ from the current one")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must differ from the current one",
+        )
 
     current_user.hashed_password = hash_password(body.new_password)
     session.add(current_user)

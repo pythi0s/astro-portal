@@ -1,56 +1,56 @@
 # app/models/customer.py
 import enum
 from datetime import date, datetime, time
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from app.models.visit import Visit
     from app.models.customer_solution import CustomerSolution
+    from app.models.visit import Visit
 
 
-class Gender(str, enum.Enum):
+class Gender(enum.StrEnum):
     male = "male"
     female = "female"
     other = "other"
 
 
 class Customer(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
 
     # Personal
     name: str
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    gender: Optional[Gender] = None
-    date_of_birth: Optional[date] = None
-    birth_time: Optional[time] = None
-    birth_place: Optional[str] = None
-    occupation: Optional[str] = None
-    marital_status: Optional[str] = None
+    email: str | None = None
+    phone: str | None = None
+    gender: Gender | None = None
+    date_of_birth: date | None = None
+    birth_time: time | None = None
+    birth_place: str | None = None
+    occupation: str | None = None
+    marital_status: str | None = None
 
     # Address
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    pincode: str | None = None
 
     # Astrology
-    rashi: Optional[str] = None
-    nakshatra: Optional[str] = None
-    gotra: Optional[str] = None
-    lagna: Optional[str] = None
+    rashi: str | None = None
+    nakshatra: str | None = None
+    gotra: str | None = None
+    lagna: str | None = None
 
     # Files
-    photo_path: Optional[str] = None
-    kundali_file_path: Optional[str] = None
-    kundali_original_name: Optional[str] = None
+    photo_path: str | None = None
+    kundali_file_path: str | None = None
+    kundali_original_name: str | None = None
 
     # Meta
-    notes: Optional[str] = None
+    notes: str | None = None
     is_active: bool = True
-    created_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    created_by: int | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

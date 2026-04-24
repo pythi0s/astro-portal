@@ -1,7 +1,6 @@
 # app/schemas/visit.py
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -10,56 +9,56 @@ from app.models.visit import ConsultationType, PaymentMethod, PaymentStatus
 
 class VisitCreate(BaseModel):
     customer_id: int
-    visit_date: Optional[date] = None
+    visit_date: date | None = None
     consultation_type: ConsultationType = ConsultationType.follow_up
 
-    problems_discussed: Optional[str] = None
-    analysis: Optional[str] = None
-    recommendations: Optional[str] = None
+    problems_discussed: str | None = None
+    analysis: str | None = None
+    recommendations: str | None = None
 
     fees: Decimal = Decimal("0.00")
     payment_status: PaymentStatus = PaymentStatus.pending
-    payment_method: Optional[PaymentMethod] = None
+    payment_method: PaymentMethod | None = None
 
-    follow_up_date: Optional[date] = None
-    notes: Optional[str] = None
+    follow_up_date: date | None = None
+    notes: str | None = None
 
     solution_ids: list[int] = []
 
 
 class VisitUpdate(BaseModel):
-    visit_date: Optional[date] = None
-    consultation_type: Optional[ConsultationType] = None
+    visit_date: date | None = None
+    consultation_type: ConsultationType | None = None
 
-    problems_discussed: Optional[str] = None
-    analysis: Optional[str] = None
-    recommendations: Optional[str] = None
+    problems_discussed: str | None = None
+    analysis: str | None = None
+    recommendations: str | None = None
 
-    fees: Optional[Decimal] = None
-    payment_status: Optional[PaymentStatus] = None
-    payment_method: Optional[PaymentMethod] = None
+    fees: Decimal | None = None
+    payment_status: PaymentStatus | None = None
+    payment_method: PaymentMethod | None = None
 
-    follow_up_date: Optional[date] = None
-    notes: Optional[str] = None
+    follow_up_date: date | None = None
+    notes: str | None = None
 
 
 class VisitRead(BaseModel):
     id: int
     customer_id: int
-    visited_by: Optional[int] = None
+    visited_by: int | None = None
     visit_date: date
     consultation_type: ConsultationType
 
-    problems_discussed: Optional[str] = None
-    analysis: Optional[str] = None
-    recommendations: Optional[str] = None
+    problems_discussed: str | None = None
+    analysis: str | None = None
+    recommendations: str | None = None
 
     fees: Decimal
     payment_status: PaymentStatus
-    payment_method: Optional[PaymentMethod] = None
+    payment_method: PaymentMethod | None = None
 
-    follow_up_date: Optional[date] = None
-    notes: Optional[str] = None
+    follow_up_date: date | None = None
+    notes: str | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,6 +1,5 @@
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -70,4 +69,4 @@ class RevenueByCategory(BaseModel):
     to_date: date
     rows: list[CategoryRevenueRow]
     grand_total: Decimal
-    unassigned_bucket_label: Optional[str] = "__unassigned__"
+    unassigned_bucket_label: str | None = "__unassigned__"

@@ -1,6 +1,5 @@
 # app/api/routes/customers.py
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,8 +36,8 @@ async def create_customer(
 
 @router.get("/", response_model=list[CustomerList])
 async def list_customers(
-    search: Optional[str] = Query(None, description="Search by name, phone, or email"),
-    is_active: Optional[bool] = Query(None),
+    search: str | None = Query(None, description="Search by name, phone, or email"),
+    is_active: bool | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),

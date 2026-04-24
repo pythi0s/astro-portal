@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Ensure app is importable
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -9,12 +9,11 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
-
-from app.core.config import settings
 from sqlmodel import SQLModel
+
 import app.models  # IMPORTANT: loads models
+from alembic import context
+from app.core.config import settings
 
 # Alembic Config
 config = context.config

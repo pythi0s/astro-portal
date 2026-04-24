@@ -1,10 +1,10 @@
 # app/api/routes/admin.py
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, func
+from sqlmodel import func, select
 
 from app.core.security import hash_password, require_role
 from app.db.database import get_session
@@ -21,8 +21,8 @@ _admin_only = require_role([UserRole.admin])
 
 @router.get("/users", response_model=list[UserRead])
 async def list_users(
-    role: Optional[UserRole] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    role: UserRole | None = Query(None),
+    is_active: bool | None = Query(None),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(_admin_only),
 ):
@@ -72,16 +72,13 @@ async def create_user(
     return user
 
 
-from pydantic import BaseModel
-
-
 class AdminUserUpdate(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    role: Optional[UserRole] = None
-    is_active: Optional[bool] = None
+    email: str | None = None
+    password: str | None = None
+    full_name: str | None = None
+    phone: str | None = None
+    role: UserRole | None = None
+    is_active: bool | None = None
 
 
 @router.put("/users/{user_id}", response_model=UserRead)

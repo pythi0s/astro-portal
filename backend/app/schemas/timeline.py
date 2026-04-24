@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -12,8 +12,8 @@ class VisitTimelineEvent(BaseModel):
     consultation_type: str
     fees: float
     payment_status: str
-    problems_discussed: Optional[str] = None
-    notes: Optional[str] = None
+    problems_discussed: str | None = None
+    notes: str | None = None
 
 
 class SolutionTimelineEvent(BaseModel):
@@ -23,7 +23,7 @@ class SolutionTimelineEvent(BaseModel):
     solution_name: str
     solution_category: str
     status: str
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class MessageTimelineEvent(BaseModel):
@@ -31,8 +31,8 @@ class MessageTimelineEvent(BaseModel):
     date: str
     id: int
     channel: str
-    subject: Optional[str] = None
+    subject: str | None = None
     status: str
 
 
-TimelineEvent = Union[VisitTimelineEvent, SolutionTimelineEvent, MessageTimelineEvent]
+TimelineEvent = VisitTimelineEvent | SolutionTimelineEvent | MessageTimelineEvent

@@ -2,29 +2,29 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from app.models.customer import Customer
 
 
-class ConsultationType(str, enum.Enum):
+class ConsultationType(enum.StrEnum):
     first_visit = "first_visit"
     follow_up = "follow_up"
     special = "special"
     emergency = "emergency"
 
 
-class PaymentStatus(str, enum.Enum):
+class PaymentStatus(enum.StrEnum):
     paid = "paid"
     pending = "pending"
     partial = "partial"
     waived = "waived"
 
 
-class PaymentMethod(str, enum.Enum):
+class PaymentMethod(enum.StrEnum):
     cash = "cash"
     upi = "upi"
     card = "card"
@@ -32,23 +32,23 @@ class PaymentMethod(str, enum.Enum):
 
 
 class Visit(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     customer_id: int = Field(foreign_key="customer.id", index=True)
-    visited_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    visited_by: int | None = Field(default=None, foreign_key="user.id")
 
     visit_date: date = Field(default_factory=date.today)
     consultation_type: ConsultationType = Field(default=ConsultationType.follow_up)
 
-    problems_discussed: Optional[str] = None
-    analysis: Optional[str] = None
-    recommendations: Optional[str] = None
+    problems_discussed: str | None = None
+    analysis: str | None = None
+    recommendations: str | None = None
 
     fees: Decimal = Field(default=Decimal("0.00"), max_digits=10, decimal_places=2)
     payment_status: PaymentStatus = Field(default=PaymentStatus.pending)
-    payment_method: Optional[PaymentMethod] = None
+    payment_method: PaymentMethod | None = None
 
-    follow_up_date: Optional[date] = None
-    notes: Optional[str] = None
+    follow_up_date: date | None = None
+    notes: str | None = None
 
     # Soft-delete flag (Step 3). Default True to keep existing rows visible
     # after the backfilling migration runs.

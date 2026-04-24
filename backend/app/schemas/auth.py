@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +19,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole = UserRole.astrologer
 
 
@@ -28,7 +27,7 @@ class UserRead(BaseModel):
     id: int
     email: str
     full_name: str
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole
     is_active: bool
     created_at: datetime
@@ -37,8 +36,8 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
+    full_name: str | None = None
+    phone: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -54,7 +53,7 @@ class BootstrapRequest(BaseModel):
     email: str
     password: str = Field(..., min_length=8)
     full_name: str = ""
-    phone: Optional[str] = None
+    phone: str | None = None
 
 
 class AdminStats(BaseModel):

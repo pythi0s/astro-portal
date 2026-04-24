@@ -13,10 +13,10 @@ import logging
 import sys
 from pathlib import Path
 
-from alembic import command
 from alembic.config import Config as AlembicConfig
 from sqlmodel import select
 
+from alembic import command
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.database import async_session

@@ -1,8 +1,8 @@
 import time
 from collections import defaultdict, deque
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from threading import Lock
-from typing import Sequence
 
 import bcrypt
 from fastapi import Depends, HTTPException, Request, status
@@ -45,8 +45,11 @@ async def get_current_user(
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        ) from exc
 
     result = await session.execute(select(User).where(User.id == int(user_id)))
     user = result.scalar_one_or_none()
@@ -58,7 +61,10 @@ async def get_current_user(
 def require_role(allowed_roles: Sequence[UserRole]):
     async def role_checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in allowed_roles:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
         return current_user
     return role_checker
 

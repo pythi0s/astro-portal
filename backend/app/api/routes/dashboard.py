@@ -131,7 +131,11 @@ async def dashboard_earnings(
         total_fees = sum((v.fees for v in group), Decimal("0.00"))
         paid_count = sum(1 for v in group if v.payment_status == PaymentStatus.paid)
         pending_amount = sum(
-            (v.fees for v in group if v.payment_status in (PaymentStatus.pending, PaymentStatus.partial)),
+            (
+                v.fees
+                for v in group
+                if v.payment_status in (PaymentStatus.pending, PaymentStatus.partial)
+            ),
             Decimal("0.00"),
         )
         grand_total += total_fees
@@ -243,7 +247,8 @@ async def dashboard_revenue_by_category(
     # visit_id -> [category_value, ...]
     categories_by_visit: dict[int, list[str]] = defaultdict(list)
     for visit_id, category in link_result.all():
-        categories_by_visit[visit_id].append(category.value if hasattr(category, "value") else str(category))
+        label = category.value if hasattr(category, "value") else str(category)
+        categories_by_visit[visit_id].append(label)
 
     totals: dict[str, Decimal] = defaultdict(lambda: Decimal("0.00"))
     counts: dict[str, int] = defaultdict(int)

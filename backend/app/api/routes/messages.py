@@ -1,7 +1,6 @@
 # app/api/routes/messages.py
 import logging
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,12 +50,12 @@ async def create_template(
 
 @router.get("/templates/", response_model=list[TemplateRead])
 async def list_templates(
-    channel: Optional[MessageChannel] = Query(None),
-    trigger_type: Optional[TriggerType] = Query(None),
+    channel: MessageChannel | None = Query(None),
+    trigger_type: TriggerType | None = Query(None),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    query = select(MessageTemplate).where(MessageTemplate.is_active == True)
+    query = select(MessageTemplate).where(MessageTemplate.is_active)
     if channel:
         query = query.where(MessageTemplate.channel == channel)
     if trigger_type:
@@ -141,7 +140,9 @@ async def send_email(
     channel = "email"
 
     if body.template_id:
-        tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
+        tpl_result = await session.execute(
+            select(MessageTemplate).where(MessageTemplate.id == body.template_id)
+        )
         template = tpl_result.scalar_one_or_none()
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
@@ -203,7 +204,9 @@ async def send_whatsapp_message(
     if not customer.phone:
         raise HTTPException(status_code=400, detail="Customer has no phone number")
 
-    tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
+    tpl_result = await session.execute(
+        select(MessageTemplate).where(MessageTemplate.id == body.template_id)
+    )
     template = tpl_result.scalar_one_or_none()
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -247,8 +250,8 @@ async def send_whatsapp_message(
 
 @router.get("/messages/log", response_model=list[MessageLogRead])
 async def get_message_log(
-    customer_id: Optional[int] = Query(None),
-    channel: Optional[str] = Query(None),
+    customer_id: int | None = Query(None),
+    channel: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),

@@ -53,7 +53,39 @@ worker = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Alembic autogenerates revision files; their long one-liners reflect the
+# column shapes they mirror, so linting them produces noise without signal.
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# alembic/env.py massages sys.path before importing app.* and imports app.models
+# purely for its side effect of registering every SQLModel with the shared
+# metadata. Both are intentional, so silence the rules that disagree.
+"alembic/env.py" = ["E402", "F401"]
+# Package __init__.py files are intentional re-export barrels (`from .x import Y`)
+# that define the public surface of app.models / app.schemas. Every import there
+# is "unused" from ruff's perspective but used by the rest of the codebase.
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's canonical dependency-injection pattern uses these helpers as
+# parameter defaults (def route(user = Depends(get_user))). They are safe by
+# design; teaching bugbear about them is the standard fix rather than adding
+# per-line noqas to every route handler.
+extend-immutable-calls = [
+    "fastapi.Body",
+    "fastapi.Cookie",
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Header",
+    "fastapi.Path",
+    "fastapi.Query",
+    "fastapi.Security",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

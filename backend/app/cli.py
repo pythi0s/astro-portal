@@ -160,8 +160,9 @@ def _run_migrations() -> int:
     Run this from a blocking CLI context (e.g. docker-entrypoint.sh), NOT from
     inside an already-running event loop. That's why this is not async.
     """
-    from alembic import command
     from alembic.config import Config as AlembicConfig
+
+    from alembic import command
 
     alembic_ini = Path(__file__).resolve().parents[1] / "alembic.ini"
     cfg = AlembicConfig(str(alembic_ini))
@@ -199,7 +200,10 @@ async def _wait_for_db(timeout: int) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m app.cli", description="Astro-Portal backend CLI")
+    parser = argparse.ArgumentParser(
+        prog="python -m app.cli",
+        description="Astro-Portal backend CLI",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     create_admin = sub.add_parser("create-admin", help="Create or promote an admin user")
@@ -214,7 +218,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser(
         "seed-admin-if-missing",
-        help="Create the SEED_ADMIN_* user iff no active admin exists yet (idempotent, env-driven).",
+        help=(
+            "Create the SEED_ADMIN_* user iff no active admin exists yet "
+            "(idempotent, env-driven)."
+        ),
     )
 
     sub.add_parser(
