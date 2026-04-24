@@ -47,9 +47,12 @@ describe('<UserListPage />', () => {
     renderWithProviders(<UserListPage />, { route: '/admin/users' });
 
     // AdminStatsCard shows three labelled tiles. Wait for stats to land.
-    expect(await screen.findByText(/total users/i)).toBeInTheDocument();
-    expect(screen.getByText(/active users/i)).toBeInTheDocument();
-    expect(screen.getByText(/admins/i)).toBeInTheDocument();
+    // Use exact-match regex because the page subtitle prose also contains the
+    // word "admins" ("Manage the admins, astrologers, and receptionists …"),
+    // which would make /admins/i match two elements and throw.
+    expect(await screen.findByText(/^total users$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^active users$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^admins$/i)).toBeInTheDocument();
 
     // The three counts should appear as "7", "6", "2" respectively.
     const valueStrings = ['7', '6', '2'];

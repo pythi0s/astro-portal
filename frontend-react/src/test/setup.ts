@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { useAuthStore } from '@/stores/auth';
 import { server } from './msw';
@@ -17,6 +18,12 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // React Testing Library only auto-cleans when vitest runs with globals:true
+  // (and even then only if you import from '@testing-library/react/vitest').
+  // We keep globals:false for explicit imports, so we wire cleanup manually.
+  // Without this, DOM from the prior test leaks forward and getBy* queries
+  // match "multiple elements" or type into stale inputs.
+  cleanup();
   server.resetHandlers();
   try {
     window.localStorage.clear();

@@ -30,18 +30,6 @@ const sampleRevenue: RevenueSummary = {
   collection_rate: 80,
 };
 
-const earlierRevenue: RevenueSummary = {
-  ...sampleRevenue,
-  from_date: '2026-01-30',
-  to_date: '2026-02-28',
-  collected: 90_000,
-  outstanding: 25_000,
-  gross: 115_000,
-  visit_count: 36,
-  avg_fee: 3_194,
-  collection_rate: 78,
-};
-
 const emptyEarnings: EarningsSummary = {
   period: 'day',
   start_date: '2026-03-01',
@@ -60,17 +48,15 @@ const emptyCategories: RevenueByCategory = {
 const emptyVisits: VisitSummary[] = [];
 
 function installDashboardHandlers() {
-  let revenueCall = 0;
   server.use(
-    http.get('/dashboard/revenue', () => {
-      // The page fires two /revenue queries in parallel: current + previous
-      // window. The store keys differ so React Query issues two separate
-      // HTTP requests; we hand the first the "current" payload and the
-      // second the "previous" payload. Order is deterministic in React
-      // Query v5.
-      revenueCall += 1;
-      return HttpResponse.json(revenueCall === 1 ? sampleRevenue : earlierRevenue);
-    }),
+    // The page fires TWO /revenue queries in parallel (current window and
+    // previous-equal-length window via usePreviousRevenueStats). Since the
+    // default range is derived from `new Date()` at runtime, hard-coding
+    // fixture dates and switching on query params makes the test fragile.
+    // Returning the same payload for both calls keeps the assertions on the
+    // current-window numbers deterministic; delta KPIs will be 0% but the
+    // test does not assert on them.
+    http.get('/dashboard/revenue', () => HttpResponse.json(sampleRevenue)),
     http.get('/dashboard/earnings', () => HttpResponse.json(emptyEarnings)),
     http.get('/dashboard/revenue-by-category', () => HttpResponse.json(emptyCategories)),
     http.get('/visits/', () => HttpResponse.json(emptyVisits)),
@@ -88,22 +74,23 @@ describe('<Dashboard />', () => {
 
     renderWithProviders(<Dashboard />, { route: '/dashboard' });
 
-    const kpiList = await screen.findByRole('list', { name: /key revenue indicators/i });
-    const items = within(kpiList).getAllByRole('listitem');
-    expect(items).toHaveLength(6);
-
-    // The first card is "Total Revenue" = gross = 150,000 → formatted as ₹1,50,000 (INR default).
-    const totalRevenue = within(items[0]);
-    expect(totalRevenue.getByText(/total revenue/i)).toBeInTheDocument();
+    // Always re-query the KPI list inside waitFor. Capturing DOM nodes into
+    // variables and asserting later breaks when React Query re-renders and
+    // swaps subtrees — the old nodes go detached and the assertion error is
+    // a confusing "element could not be found in the document".
     await waitFor(() => {
-      expect(totalRevenue.getByText((t) => /1.*50.*000/.test(t))).toBeInTheDocument();
-    });
+      const list = screen.getByRole('list', { name: /key revenue indicators/i });
+      const items = within(list).getAllByRole('listitem');
+      expect(items).toHaveLength(6);
 
-    // Collection rate (last card) should show the 80% value once loaded.
-    const collectionRate = within(items[5]);
-    expect(collectionRate.getByText(/collection rate/i)).toBeInTheDocument();
-    await waitFor(() => {
-      expect(collectionRate.getByText(/80/)).toBeInTheDocument();
+      // items[0] = "Total Revenue" = gross = 150,000 → formatted via Intl
+      // as ₹1,50,000 (en-IN) or ₹150,000 (en-US); the regex matches both.
+      expect(within(items[0]).getByText(/total revenue/i)).toBeInTheDocument();
+      expect(within(items[0]).getByText((t) => /1.*50.*000/.test(t))).toBeInTheDocument();
+
+      // items[5] = "Collection Rate" = "80.0%" via formatPercent.
+      expect(within(items[5]).getByText(/collection rate/i)).toBeInTheDocument();
+      expect(within(items[5]).getByText(/80\.0%/)).toBeInTheDocument();
     });
   });
 
