@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: astro-portal/frontend-react
+        working-directory: frontend-react
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-react-dist
-          path: astro-portal/frontend-react/dist
+          path: frontend-react/dist
           if-no-files-found: ignore
           retention-days: 3
 
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: astro-portal/frontend
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: astro-portal/backend
+        working-directory: backend
     # Spin up Postgres 18 as a service so alembic has a real database to hit.
     # Redis is not needed for this job; celery is only exercised in the
     # with-celery profile and has no migrations.
@@ -118,7 +118,7 @@ jobs:
         with:
           version: latest
           enable-cache: true
-          cache-dependency-glob: astro-portal/backend/uv.lock
+          cache-dependency-glob: backend/uv.lock
 
       - name: Install dependencies (frozen)
         run: uv sync --frozen
@@ -138,9 +138,8 @@ jobs:
   compose:
     name: compose config validation
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: astro-portal
+    # This job runs at the repository root (no defaults.run.working-directory)
+    # because docker-compose.yml lives at the top level.
     steps:
       - uses: actions/checkout@v4
 
