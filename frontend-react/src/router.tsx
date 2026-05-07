@@ -10,15 +10,26 @@ import { NotFound } from '@/pages/NotFound';
 import { Dashboard } from '@/pages/Dashboard';
 import { Skeleton } from '@/components/Skeleton';
 
+type LazyModule = {
+  default?: ComponentType;
+  [key: string]: ComponentType | undefined;
+};
+
 /**
  * Lazy route wrapper. Every feature page is code-split with React.lazy so the
  * initial bundle stays small and each domain loads on demand. The fallback is
  * a simple skeleton so hard navigations don't flash the empty shell.
  */
-function lazyRoute(factory: () => Promise<{ [k: string]: ComponentType }>, exportName: string) {
+function lazyRoute(factory: () => Promise<LazyModule>, exportName: string) {
   const Loaded = lazy(async () => {
     const mod = await factory();
-    return { default: mod[exportName] };
+    const resolved = mod[exportName] ?? mod.default;
+
+    if (!resolved) {
+      throw new Error(`Lazy route module is missing both named export "${exportName}" and a default export.`);
+    }
+
+    return { default: resolved };
   });
   return (
     <Suspense

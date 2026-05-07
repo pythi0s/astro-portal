@@ -20,12 +20,18 @@ export async function getRevenueStats(range: DateRange, opts: GetOpts = {}): Pro
   return data;
 }
 
+const GRANULARITY_MAP: Record<Granularity, string> = {
+  day: 'daily',
+  week: 'weekly',
+  month: 'monthly',
+};
+
 export async function getEarnings(
   params: { period: Granularity; days: number },
   opts: GetOpts = {},
 ): Promise<EarningsSummary> {
   const { data } = await apiClient.get<EarningsSummary>('/dashboard/earnings', {
-    params,
+    params: { ...params, period: GRANULARITY_MAP[params.period] },
     signal: opts.signal,
   });
   return data;

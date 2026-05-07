@@ -33,6 +33,10 @@ Thumbs.db
 # Python
 *.egg-info/
 uv.lock
+**/__pycache__/
+**/*.pyc
+*.pyc
+__pycache__/
 
 # AI templates
 markdown_templates/
