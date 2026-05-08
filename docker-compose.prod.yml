@@ -1,0 +1,162 @@
+# =============================================================================
+# ASTRO PORTAL — PRODUCTION COMPOSE OVERRIDE
+# =============================================================================
+# Usage (single command):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file ONLY overrides or adds production-specific values.
+# The base docker-compose.yml remains the canonical service graph.
+#
+# Key changes vs base:
+#   - restart: unless-stopped on every long-running service
+#   - CPU/memory resource limits per service
+#   - Backend and Celery bind from a pre-built image (no live bind-mount)
+#   - React production image (static build served by nginx-embed in frontend)
+#   - Celery worker included by default (no --profile flag needed)
+#   - Network isolation: edge (nginx+frontend+backend) vs internal (backend+db+redis)
+#   - Bootstrap sidecar removed (one-shot; not needed after first-run)
+#   - Redis persistence upgraded to appendonly AOF so queue survives crash
+# =============================================================================
+
+services:
+
+  # ─────────────── DATABASE ───────────────
+  db:
+    restart: unless-stopped
+    # Production: never bind-mount code into the DB container
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ─────────────── REDIS ───────────────
+  redis:
+    restart: unless-stopped
+    # Enable AOF persistence so queued Celery tasks survive a crash
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ─────────────── BACKEND ───────────────
+  backend:
+    restart: unless-stopped
+    # Production: do NOT bind-mount source code
+    volumes:
+      - uploads:/workspace/uploads
+    # Remove the --reload flag; replace with production uvicorn settings
+    command:
+      - "uv"
+      - "run"
+      - "uvicorn"
+      - "app.main:app"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+      - "--workers"
+      - "2"
+      - "--no-access-log"
+    networks:
+      - edge
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ─────────────── CELERY WORKER ───────────────
+  celery-worker:
+    restart: unless-stopped
+    # Production: do NOT bind-mount source code
+    volumes:
+      - uploads:/workspace/uploads
+    # Remove the profile so it runs by default in production
+    profiles: []
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ─────────────── REACT FRONTEND (production static build) ───────────────
+  frontend-react:
+    # Override the image to use the production build stage
+    build:
+      context: ./frontend-react
+      target: production
+    # No bind-mounts in production
+    volumes: []
+    # Static files are served by nginx inside the container; no Vite dev server
+    # The container nginx listens on 3000 (see production Dockerfile)
+    ports:
+      - "5174:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - edge
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  # ─────────────── VUE FRONTEND (disabled in production — drop cleanly) ───────────────
+  # React is the production primary frontend. Vue is dev-only.
+  # We override it to not publish ports and to depend on nothing production-critical.
+  frontend:
+    profiles:
+      - dev-vue-only
+
+  # ─────────────── NGINX (always on in production) ───────────────
+  nginx:
+    restart: unless-stopped
+    # Remove the profile so nginx runs by default in production
+    profiles: []
+    networks:
+      - edge
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  # ─────────────── BOOTSTRAP (one-shot; not needed after first run) ───────────────
+  # Suppress the banner sidecar in production restarts.
+  bootstrap:
+    profiles:
+      - first-run
+
+# ─────────────── PRODUCTION NETWORKS ───────────────
+networks:
+  edge:
+    # nginx, backend, frontend — exposed to the world via port mappings
+    driver: bridge
+  internal:
+    # db, redis, celery-worker — no public port exposure
+    driver: bridge
+    internal: true

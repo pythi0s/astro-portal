@@ -12,8 +12,8 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: 'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500',
-  secondary: 'border border-midnight-200 bg-white text-midnight-800 hover:bg-midnight-700/5 focus-visible:ring-primary-500',
+  primary: 'bg-gradient-to-r from-saffron-400 to-saffron-500 text-deep-900 font-semibold shadow-md hover:from-saffron-500 hover:to-saffron-600 focus-visible:ring-saffron-400',
+  secondary: 'border border-violet-200 bg-white/70 backdrop-blur-sm text-violet-800 hover:bg-violet-50 focus-visible:ring-violet-400',
   ghost: 'text-midnight-800 hover:bg-midnight-700/5 focus-visible:ring-primary-500',
   danger: 'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400',
 };

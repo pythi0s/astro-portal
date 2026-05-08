@@ -1,4 +1,4 @@
-import { KpiCard } from '@/features/dashboard/KpiCard';
+import { KpiCard, type KpiAccent } from '@/features/dashboard/KpiCard';
 import type { RevenueSummary } from '@/features/dashboard/types';
 import {
   formatInteger,
@@ -13,19 +13,63 @@ interface Props {
   isLoading: boolean;
 }
 
-/** Six-up grid of KPIs. Stays stable at one / two / three columns as the
- *  viewport narrows; each card renders independently so a slow previous-window
- *  fetch doesn't block the primary numbers. */
+const CARD_ACCENTS: KpiAccent[] = ['saffron', 'jade', 'crimson', 'violet', 'gold', 'slate'];
+
 export function KpiGrid({ current, previous, isLoading }: Props) {
   const c = current;
   const p = previous;
 
-  const gross = toNumber(c?.gross);
-  const collected = toNumber(c?.collected);
-  const outstanding = toNumber(c?.outstanding);
-  const visits = c?.visit_count ?? Number.NaN;
-  const avgFee = toNumber(c?.avg_fee);
-  const collectionRate = toNumber(c?.collection_rate);
+  const gross           = toNumber(c?.gross);
+  const collected       = toNumber(c?.collected);
+  const outstanding     = toNumber(c?.outstanding);
+  const visits          = c?.visit_count ?? Number.NaN;
+  const avgFee          = toNumber(c?.avg_fee);
+  const collectionRate  = toNumber(c?.collection_rate);
+
+  const cards = [
+    {
+      label: 'Total Revenue',
+      value: formatMoney(gross),
+      rawValue: gross,
+      previousValue: p ? toNumber(p.gross) : undefined,
+      tooltip: 'Collected + outstanding + waived for the selected range',
+    },
+    {
+      label: 'Collected',
+      value: formatMoney(collected),
+      rawValue: collected,
+      previousValue: p ? toNumber(p.collected) : undefined,
+      tooltip: "Sum of fees where payment status is 'paid'",
+    },
+    {
+      label: 'Outstanding',
+      value: formatMoney(outstanding),
+      rawValue: outstanding,
+      previousValue: p ? toNumber(p.outstanding) : undefined,
+      tooltip: 'Pending + partial payments still owed',
+    },
+    {
+      label: 'Visits',
+      value: formatInteger(visits),
+      rawValue: Number.isFinite(visits) ? visits : 0,
+      previousValue: p ? p.visit_count : undefined,
+      tooltip: 'Visit count in range',
+    },
+    {
+      label: 'Avg Fee / Visit',
+      value: formatMoney(avgFee),
+      rawValue: avgFee,
+      previousValue: p ? toNumber(p.avg_fee) : undefined,
+      tooltip: 'Gross / visit count',
+    },
+    {
+      label: 'Collection Rate',
+      value: formatPercent(collectionRate),
+      rawValue: collectionRate,
+      previousValue: p ? toNumber(p.collection_rate) : undefined,
+      tooltip: 'Collected / (collected + outstanding). Waived excluded.',
+    },
+  ];
 
   return (
     <div
@@ -33,66 +77,11 @@ export function KpiGrid({ current, previous, isLoading }: Props) {
       aria-label="Key revenue indicators"
       className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <div role="listitem">
-        <KpiCard
-          label="Total Revenue"
-          value={formatMoney(gross)}
-          rawValue={gross}
-          previousValue={p ? toNumber(p.gross) : undefined}
-          isLoading={isLoading}
-          tooltip="Collected + outstanding + waived for the selected range"
-        />
-      </div>
-      <div role="listitem">
-        <KpiCard
-          label="Collected"
-          value={formatMoney(collected)}
-          rawValue={collected}
-          previousValue={p ? toNumber(p.collected) : undefined}
-          isLoading={isLoading}
-          tooltip="Sum of fees where payment status is 'paid'"
-        />
-      </div>
-      <div role="listitem">
-        <KpiCard
-          label="Outstanding"
-          value={formatMoney(outstanding)}
-          rawValue={outstanding}
-          previousValue={p ? toNumber(p.outstanding) : undefined}
-          isLoading={isLoading}
-          tooltip="Pending + partial payments still owed"
-        />
-      </div>
-      <div role="listitem">
-        <KpiCard
-          label="Visits"
-          value={formatInteger(visits)}
-          rawValue={Number.isFinite(visits) ? visits : 0}
-          previousValue={p ? p.visit_count : undefined}
-          isLoading={isLoading}
-          tooltip="Visit count in range"
-        />
-      </div>
-      <div role="listitem">
-        <KpiCard
-          label="Avg Fee / Visit"
-          value={formatMoney(avgFee)}
-          rawValue={avgFee}
-          previousValue={p ? toNumber(p.avg_fee) : undefined}
-          isLoading={isLoading}
-          tooltip="Gross / visit count"
-        />
-      </div>
-      <div role="listitem">
-        <KpiCard
-          label="Collection Rate"
-          value={formatPercent(collectionRate)}
-          rawValue={collectionRate}
-          previousValue={p ? toNumber(p.collection_rate) : undefined}
-          isLoading={isLoading}
-          tooltip="Collected / (collected + outstanding). Waived excluded."
-        />
-      </div>
+      {cards.map((card, i) => (
+        <div key={card.label} role="listitem">
+          <KpiCard {...card} accent={CARD_ACCENTS[i]} index={i} isLoading={isLoading} />
+        </div>
+      ))}
     </div>
   );
 }

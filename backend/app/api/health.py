@@ -1,20 +1,20 @@
 """Health endpoints.
 
-- `GET /health` returns 200 in <50 ms without touching the database. This is
-  what Docker Compose and k8s readiness probes should hit; a slow DB must not
-  make the container itself look unhealthy.
-- `GET /health?deep=1` performs a real `SELECT 1` against Postgres and reports
-  the round-trip latency. The `bootstrap` sidecar uses this to decide when the
-  full stack is READY.
-- `GET /health/live` and `GET /health/db` remain as before for any existing
-  probes or dashboards -- removing them would be a breaking change for no gain.
+Probe model (Kubernetes / production Compose):
+
+  GET /health         — liveness probe: <50ms, no DB. Container is alive.
+  GET /health/ready   — readiness probe: DB round-trip. Container can serve traffic.
+  GET /health?deep=1  — legacy: same as /health/ready, kept for bootstrap sidecar.
+  GET /health/live    — legacy alias for /health (backward compat).
+  GET /health/db      — legacy alias for /health/ready (backward compat).
 """
 
 from __future__ import annotations
 
 import time
+from http import HTTPStatus
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 from sqlalchemy import text
 
 from app.db.database import engine
@@ -33,9 +33,13 @@ async def _db_ping() -> tuple[bool, float | None, str | None]:
     return True, latency_ms, None
 
 
+# ── Liveness ──────────────────────────────────────────────────────────────────
+# No DB call — just proves the process is up and the event loop is running.
+# Use this for Docker/k8s *liveness* probes (trigger restart on failure).
+
 @router.get("/health")
 async def health(deep: int = Query(0, ge=0, le=1)) -> dict[str, object]:
-    """Shallow by default; pass ?deep=1 for a DB round-trip check."""
+    """Liveness probe. Pass ?deep=1 to also check DB (legacy bootstrap use)."""
     if not deep:
         return {"status": "ok"}
 
@@ -53,6 +57,31 @@ async def health(deep: int = Query(0, ge=0, le=1)) -> dict[str, object]:
         "latency_ms": latency_ms,
     }
 
+
+# ── Readiness ─────────────────────────────────────────────────────────────────
+# Performs a real DB round-trip. Returns 503 when DB is unavailable so that
+# load balancers / Compose healthchecks can stop routing traffic to this
+# instance without triggering a full container restart.
+
+@router.get("/health/ready")
+async def readiness(response: Response) -> dict[str, object]:
+    """Readiness probe. Use for load-balancer / Compose *readiness* checks."""
+    ok, latency_ms, err = await _db_ping()
+    if not ok:
+        response.status_code = HTTPStatus.SERVICE_UNAVAILABLE
+        return {
+            "status": "not_ready",
+            "database": "disconnected",
+            "detail": err,
+        }
+    return {
+        "status": "ready",
+        "database": "connected",
+        "latency_ms": latency_ms,
+    }
+
+
+# ── Legacy aliases (backward compatibility) ───────────────────────────────────
 
 @router.get("/health/live")
 async def liveness() -> dict[str, str]:

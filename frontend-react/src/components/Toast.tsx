@@ -100,7 +100,7 @@ function ToastRegion({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: n
             'pointer-events-auto w-full max-w-md rounded-md border px-4 py-3 shadow-sm',
             t.tone === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
             t.tone === 'error' && 'border-rose-200 bg-rose-50 text-rose-900',
-            t.tone === 'info' && 'border-midnight-200 bg-white text-midnight-900',
+            t.tone === 'info' && 'border-violet-200 bg-violet-50 text-violet-900',
           )}
         >
           <div className="flex items-start justify-between gap-3">

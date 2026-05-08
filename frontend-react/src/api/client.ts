@@ -48,7 +48,7 @@ async function runRefresh(): Promise<string> {
 }
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: '/',
+  baseURL: '/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });

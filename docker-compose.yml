@@ -118,6 +118,7 @@ services:
   frontend-react:
     build:
       context: ./frontend-react
+      target: development
     env_file:
       - ./.env
     environment:

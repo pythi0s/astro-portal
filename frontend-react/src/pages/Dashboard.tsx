@@ -51,8 +51,8 @@ export function Dashboard() {
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-midnight-900">Revenue Dashboard</h1>
-          <p className="text-sm text-midnight-700">
+          <h1 className="text-xl font-bold text-gold-700">Revenue Dashboard</h1>
+          <p className="text-sm text-yellow-800">
             Cash in, cash outstanding, and trend for the selected range.
           </p>
         </div>

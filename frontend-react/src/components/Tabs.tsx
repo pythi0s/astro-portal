@@ -65,8 +65,8 @@ export function Tabs({ tabs, paramKey = 'tab', defaultTab, ariaLabel }: Props) {
                 'border-b-2 px-3 py-2 text-sm font-medium transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                 isActive
-                  ? 'border-primary-600 text-midnight-900'
-                  : 'border-transparent text-midnight-700 hover:text-midnight-900',
+                  ? 'border-gold-500 text-gold-700 bg-gold-300/10'
+                  : '!text-gold-700 hover:!text-gold-600 hover:border-gold-500/50',
               )}
             >
               {t.label}

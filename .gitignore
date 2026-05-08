@@ -40,3 +40,15 @@ __pycache__/
 
 # AI templates
 markdown_templates/
+
+# Production environment files — NEVER commit these
+.env.production
+.env.staging
+.env.local
+*.env.backup
+
+# Certbot / Let's Encrypt output
+nginx/ssl/*.pem
+nginx/ssl/*.crt
+nginx/ssl/*.key
+certbot/

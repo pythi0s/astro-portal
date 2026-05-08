@@ -29,28 +29,11 @@ export default defineConfig(({ mode }) => {
       // configure the nginx /app/ location block for websocket upgrades
       // (see nginx/default.conf).
       proxy: {
-        // auth, health, uploads, timeline – not SPA routes, safe as-is
-        '/auth': { target: backendTarget, changeOrigin: true },
-        '/health': { target: backendTarget, changeOrigin: true },
-        '/uploads': { target: backendTarget, changeOrigin: true },
-        '/timeline': { target: backendTarget, changeOrigin: true },
-
-        // Resource API calls always use a trailing slash (FastAPI style).
-        // Bare paths like /customers (without /) are SPA routes and must
-        // NOT be proxied — Vite will serve index.html for them automatically.
-        '/customers/': { target: backendTarget, changeOrigin: true },
-        '/visits/': { target: backendTarget, changeOrigin: true },
-        '/solutions/': { target: backendTarget, changeOrigin: true },
-        '/templates/': { target: backendTarget, changeOrigin: true },
-        '/messages/': { target: backendTarget, changeOrigin: true },
-
-        // /admin has real API routes (/admin/users, /admin/stats) that also
-        // contain a path segment – use trailing-slash form so bare /admin/users
-        // (SPA page) doesn't get proxied while /admin/ API calls do.
-        '/admin/': { target: backendTarget, changeOrigin: true },
-
-        // Dashboard API routes (/dashboard/earnings etc) – bare /dashboard is SPA
-        '/dashboard/': { target: backendTarget, changeOrigin: true },
+        '/api': {
+          target: backendTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
       },
     },
     build: {

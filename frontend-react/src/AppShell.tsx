@@ -4,13 +4,11 @@ import { TopBar } from '@/components/TopBar';
 import { useServerErrorToast } from '@/hooks/useServerErrorToast';
 
 export function AppShell() {
-  // Mount the global 403/5xx toast interceptor exactly once. The 401 refresh
-  // interceptor is registered elsewhere (`api/client.ts`) and is independent.
   useServerErrorToast();
 
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-white">
+      <div className="mandala-bg min-h-screen">
         <TopBar />
         <Outlet />
       </div>
