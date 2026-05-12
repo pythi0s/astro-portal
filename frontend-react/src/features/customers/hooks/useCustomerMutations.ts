@@ -37,7 +37,12 @@ export function useUpdateCustomer(id: number) {
       }
     },
     onSuccess: (data) => {
-      qc.setQueryData(customerKeys.detail(id), data);
+      // PUT returns the slim CustomerRead (no `visits`/`customer_solutions`),
+      // so merge into the cached detail to keep the eager-loaded relationships
+      // populated by GET /customers/{id}.
+      qc.setQueryData<Customer>(customerKeys.detail(id), (prev) =>
+        prev ? { ...prev, ...data } : data,
+      );
       qc.invalidateQueries({ queryKey: customerKeys.lists() });
     },
   });
@@ -59,7 +64,9 @@ export function useUploadPhoto(id: number) {
   return useMutation({
     mutationFn: (file: File) => uploadPhoto(id, file),
     onSuccess: (data) => {
-      qc.setQueryData(customerKeys.detail(id), data);
+      qc.setQueryData<Customer>(customerKeys.detail(id), (prev) =>
+        prev ? { ...prev, ...data } : data,
+      );
       qc.invalidateQueries({ queryKey: customerKeys.lists() });
     },
   });
@@ -70,7 +77,9 @@ export function useUploadKundali(id: number) {
   return useMutation({
     mutationFn: (file: File) => uploadKundali(id, file),
     onSuccess: (data) => {
-      qc.setQueryData(customerKeys.detail(id), data);
+      qc.setQueryData<Customer>(customerKeys.detail(id), (prev) =>
+        prev ? { ...prev, ...data } : data,
+      );
     },
   });
 }

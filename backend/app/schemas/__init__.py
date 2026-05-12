@@ -1,5 +1,5 @@
 from .auth import LoginRequest, TokenResponse, UserCreate, UserRead, UserUpdate
-from .customer import CustomerCreate, CustomerList, CustomerRead, CustomerUpdate
+from .customer import CustomerCreate, CustomerList, CustomerRead, CustomerReadDetail, CustomerUpdate
 from .dashboard import DashboardSummary, EarningsSummary, PeriodBreakdown
 from .message import (
     MessageLogRead,

@@ -95,6 +95,16 @@ class _CustomerSolutionBrief(BaseModel):
 
 
 class CustomerRead(BaseModel):
+    """Default Customer response — no relationship fields.
+
+    Used by POST/PUT/photo/kundali endpoints where the ORM object hasn't been
+    eager-loaded with relationships. Accessing `customer.visits` or
+    `customer.customer_solutions` on an `AsyncSession`-bound instance without
+    `selectinload` raises `MissingGreenlet`, so those fields are intentionally
+    omitted from this schema. Use `CustomerReadDetail` from the GET-by-id
+    endpoint where relationships are eager-loaded.
+    """
+
     id: int
     name: str
     email: str | None = None
@@ -126,11 +136,14 @@ class CustomerRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    # Nested relationships (populated when eager-loaded)
+    model_config = {"from_attributes": True}
+
+
+class CustomerReadDetail(CustomerRead):
+    """Detail response for GET /customers/{id} — adds eager-loaded relationships."""
+
     visits: list[_VisitBrief] = []
     customer_solutions: list[_CustomerSolutionBrief] = []
-
-    model_config = {"from_attributes": True}
 
 
 class CustomerList(BaseModel):

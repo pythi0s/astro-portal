@@ -14,7 +14,13 @@ from app.models.customer_solution import CustomerSolution
 from app.models.solution import Solution
 from app.models.user import User
 from app.models.visit import Visit
-from app.schemas.customer import CustomerCreate, CustomerList, CustomerRead, CustomerUpdate
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerList,
+    CustomerRead,
+    CustomerReadDetail,
+    CustomerUpdate,
+)
 from app.schemas.solution import CustomerSolutionHistory
 from app.schemas.visit import VisitRead
 
@@ -58,7 +64,7 @@ async def list_customers(
     return result.scalars().all()
 
 
-@router.get("/{customer_id}", response_model=CustomerRead)
+@router.get("/{customer_id}", response_model=CustomerReadDetail)
 async def get_customer(
     customer_id: int,
     session: AsyncSession = Depends(get_session),
