@@ -7,15 +7,17 @@ export type ButtonSize = 'sm' | 'md';
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** Shown when `disabled` — rendered as `title` attribute and `aria-describedby`. */
   disabledReason?: string;
 }
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r from-saffron-400 to-saffron-500 text-deep-900 font-semibold shadow-md hover:from-saffron-500 hover:to-saffron-600 focus-visible:ring-saffron-400',
-  secondary: 'border border-violet-200 bg-white/70 backdrop-blur-sm text-violet-800 hover:bg-violet-50 focus-visible:ring-violet-400',
+  primary:
+    'btn-glass relative overflow-hidden bg-gradient-to-r from-saffron-400 to-saffron-500 text-deep-900 font-semibold shadow-md hover:from-saffron-500 hover:to-saffron-600 focus-visible:ring-saffron-400',
+  secondary:
+    'btn-glass relative overflow-hidden border border-violet-200 bg-white/70 backdrop-blur-sm text-violet-800 hover:bg-violet-50 focus-visible:ring-violet-400',
   ghost: 'text-midnight-800 hover:bg-midnight-700/5 focus-visible:ring-primary-500',
-  danger: 'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400',
+  danger:
+    'btn-glass relative overflow-hidden bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400',
 };
 
 const sizeClass: Record<ButtonSize, string> = {

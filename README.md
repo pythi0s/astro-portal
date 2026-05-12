@@ -1,4 +1,4 @@
-# ✨ Astro Portal CRM
+# ✨ व्यंकटेश प्रतिष्ठाण CRM
 
 A full-stack CRM application built for astrologers to manage customers, visits, solutions, and communications. Features a beautiful mandala-themed UI, persistent sessions, and Docker-based deployment.
 

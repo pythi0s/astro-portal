@@ -15,8 +15,15 @@ const DEFAULTS = {
   q: '',
   page: 1,
   pageSize: 20,
-  active: 'active', // "active" | "inactive" | "all"
+  active: 'active',
 } as const;
+
+function resolveUploadUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith('/')) return path;
+  return `/${path}`;
+}
 
 export default function CustomerListPage() {
   const navigate = useNavigate();
@@ -40,15 +47,33 @@ export default function CustomerListPage() {
     () => [
       {
         id: 'name',
-        header: 'Name',
-        cell: ({ row }) => (
-          <Link
-            to={`/customers/${row.original.id}`}
-            className="font-medium text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            {row.original.name}
-          </Link>
-        ),
+        header: 'Customer',
+        cell: ({ row }) => {
+          const photoUrl = resolveUploadUrl(row.original.photo_path);
+          const initial = row.original.name.charAt(0).toUpperCase();
+          return (
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 overflow-hidden rounded-full border border-midnight-200 bg-midnight-100">
+                {photoUrl ? (
+                  <img src={photoUrl} alt={row.original.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-midnight-700">
+                    {initial}
+                  </div>
+                )}
+              </div>
+              <div className="flex min-w-0 flex-col">
+                <Link
+                  to={`/customers/${row.original.id}`}
+                  className="truncate font-medium text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                >
+                  {row.original.name}
+                </Link>
+                <span className="text-xs text-midnight-600">{row.original.photo_path ? 'Photo added' : 'No photo yet'}</span>
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: 'contact',
@@ -94,6 +119,18 @@ export default function CustomerListPage() {
               Inactive
             </span>
           ),
+      },
+      {
+        id: 'actions',
+        header: 'Assets',
+        cell: ({ row }) => (
+          <Link
+            to={`/customers/${row.original.id}/edit`}
+            className="text-xs font-semibold text-primary-700 underline-offset-2 hover:underline"
+          >
+            Upload photo/kundali
+          </Link>
+        ),
       },
     ],
     [],

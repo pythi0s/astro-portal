@@ -1,6 +1,6 @@
-# Astro Portal — React Frontend (`frontend-react/`)
+# व्यंकटेश प्रतिष्ठाण — React Frontend (`frontend-react/`)
 
-React + TypeScript + Vite shell for the new Astro Portal UI. Step 2 delivered the
+React + TypeScript + Vite shell for the new व्यंकटेश प्रतिष्ठाण UI. Step 2 delivered the
 **auth foundation** (login, persistent session, silent refresh, role guards);
 Step 4 added the **Revenue Dashboard** at `/dashboard`; Step 5 ships the full
 feature surface — customers, visits, solutions, templates, messaging, admin

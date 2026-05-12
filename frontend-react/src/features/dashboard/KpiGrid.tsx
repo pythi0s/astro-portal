@@ -13,7 +13,7 @@ interface Props {
   isLoading: boolean;
 }
 
-const CARD_ACCENTS: KpiAccent[] = ['saffron', 'jade', 'crimson', 'violet', 'gold', 'slate'];
+const CARD_ACCENTS: KpiAccent[] = ['jade', 'crimson', 'slate', 'violet', 'violet', 'crimson'];
 
 export function KpiGrid({ current, previous, isLoading }: Props) {
   const c = current;
