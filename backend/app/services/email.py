@@ -1,9 +1,9 @@
 # app/services/email.py
 import logging
-
-import aiosmtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+import aiosmtplib
 
 from app.core.config import settings
 

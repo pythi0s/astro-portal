@@ -1,0 +1,120 @@
+/* ══════════════════════════════════════════
+   Mandala Design System — global tokens
+   ══════════════════════════════════════════ */
+@keyframes mandala-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes fade-in-up {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes kpi-pop {
+  0%   { opacity: 0; transform: scale(0.92) translateY(8px); }
+  70%  { transform: scale(1.02) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply antialiased text-midnight-900;
+    background: radial-gradient(ellipse at 30% 20%, #f5f0ff 0%, #fff8e7 40%, #FFFBF5 70%, #ecfdf5 100%);
+    min-height: 100vh;
+    font-family:
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+  }
+}
+
+@layer utilities {
+  .mandala-bg {
+    position: relative;
+    isolation: isolate;
+  }
+  .mandala-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cg opacity='0.06' fill='none' stroke='%236B21A8' stroke-width='1'%3E%3Ccircle cx='300' cy='300' r='280'/%3E%3Ccircle cx='300' cy='300' r='240'/%3E%3Ccircle cx='300' cy='300' r='200'/%3E%3Ccircle cx='300' cy='300' r='160'/%3E%3Ccircle cx='300' cy='300' r='120'/%3E%3Ccircle cx='300' cy='300' r='80'/%3E%3Ccircle cx='300' cy='300' r='40'/%3E%3Cline x1='300' y1='20' x2='300' y2='580'/%3E%3Cline x1='20' y1='300' x2='580' y2='300'/%3E%3Cline x1='60' y1='60' x2='540' y2='540'/%3E%3Cline x1='540' y1='60' x2='60' y2='540'/%3E%3Cline x1='20' y1='180' x2='580' y2='420'/%3E%3Cline x1='20' y1='420' x2='580' y2='180'/%3E%3Cline x1='180' y1='20' x2='420' y2='580'/%3E%3Cline x1='420' y1='20' x2='180' y2='580'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 600px 600px;
+    background-position: center;
+    background-repeat: no-repeat;
+    animation: mandala-spin 80s linear infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes glass-sweep {
+  0% { transform: translateX(-180%) skewX(-18deg); opacity: 0; }
+  12% { opacity: 0.78; }
+  45% { opacity: 0.36; }
+  100% { transform: translateX(260%) skewX(-18deg); opacity: 0; }
+}
+
+.btn-glass {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.btn-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 100%);
+}
+
+.btn-glass::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -45%;
+  width: 60%;
+  height: 180%;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 46%, rgba(255,255,255,0.18) 52%, transparent 100%);
+  filter: blur(1.2px);
+  mix-blend-mode: screen;
+  transform: translateX(-180%) skewX(-18deg);
+  opacity: 0;
+}
+
+.btn-glass:hover::after {
+  animation: glass-sweep 0.55s cubic-bezier(.25,.8,.25,1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-glass:hover::after {
+    animation: none;
+  }
+}
+
+.brand-gold-3d {
+  background: linear-gradient(180deg, #92400e 0%, #b45309 30%, #d97706 65%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 3px rgba(120, 53, 15, 0.40));
+}

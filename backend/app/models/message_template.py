@@ -1,17 +1,16 @@
 # app/models/message_template.py
 import enum
 from datetime import datetime
-from typing import Optional
 
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field, SQLModel
 
 
-class MessageChannel(str, enum.Enum):
+class MessageChannel(enum.StrEnum):
     email = "email"
     whatsapp = "whatsapp"
 
 
-class TriggerType(str, enum.Enum):
+class TriggerType(enum.StrEnum):
     first_visit = "first_visit"
     follow_up = "follow_up"
     solution_given = "solution_given"
@@ -19,11 +18,11 @@ class TriggerType(str, enum.Enum):
 
 
 class MessageTemplate(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     name: str
     channel: MessageChannel = Field(default=MessageChannel.email)
     trigger_type: TriggerType = Field(default=TriggerType.custom)
-    subject: Optional[str] = None
+    subject: str | None = None
     body: str
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)

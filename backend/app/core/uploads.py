@@ -12,11 +12,19 @@ MAX_PHOTO_SIZE = 5 * 1024 * 1024  # 5 MB
 MAX_DOC_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-async def save_upload(file: UploadFile, subfolder: str, max_size: int, allowed_types: set[str]) -> str:
+async def save_upload(
+    file: UploadFile,
+    subfolder: str,
+    max_size: int,
+    allowed_types: set[str],
+) -> str:
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail=f"File type '{file.content_type}' not allowed. Allowed: {', '.join(allowed_types)}",
+            detail=(
+                f"File type '{file.content_type}' not allowed. "
+                f"Allowed: {', '.join(allowed_types)}"
+            ),
         )
 
     content = await file.read()

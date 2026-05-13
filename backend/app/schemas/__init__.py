@@ -1,6 +1,13 @@
 from .auth import LoginRequest, TokenResponse, UserCreate, UserRead, UserUpdate
-from .customer import CustomerCreate, CustomerList, CustomerRead, CustomerUpdate
-from .visit import VisitCreate, VisitRead, VisitUpdate, VisitWithSolutions
+from .customer import CustomerCreate, CustomerList, CustomerRead, CustomerReadDetail, CustomerUpdate
+from .dashboard import DashboardSummary, EarningsSummary, PeriodBreakdown
+from .message import (
+    MessageLogRead,
+    SendEmailRequest,
+    TemplateCreate,
+    TemplateRead,
+    TemplateUpdate,
+)
 from .solution import (
     CustomerSolutionCreate,
     CustomerSolutionHistory,
@@ -9,11 +16,4 @@ from .solution import (
     SolutionRead,
     SolutionUpdate,
 )
-from .message import (
-    MessageLogRead,
-    SendEmailRequest,
-    TemplateCreate,
-    TemplateRead,
-    TemplateUpdate,
-)
-from .dashboard import DashboardSummary, EarningsSummary, PeriodBreakdown
+from .visit import VisitCreate, VisitRead, VisitUpdate, VisitWithSolutions

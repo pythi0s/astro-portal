@@ -164,22 +164,65 @@ case "$CMD" in
       psql -U $DB_USER -d $DB_NAME -c "$MSG"
     ;;
 
+  auto-backup)
+    # Designed to be called from a cron job or systemd timer.
+    # Backs up the database, then prunes files older than RETENTION_DAYS.
+    # Example crontab (daily at 02:00 UTC):
+    #   0 2 * * * /home/ubuntu/astro-portal/scripts/db.sh auto-backup >> /var/log/astro-backup.log 2>&1
+    RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+    mkdir -p "$BACKUP_DIR"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql.gz"
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Starting automated backup -> ${BACKUP_FILE}"
+    $COMPOSE exec -T $DB_SERVICE       pg_dump -U $DB_USER -d $DB_NAME --clean --if-exists | gzip > "$BACKUP_FILE"
+    SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Backup complete: ${BACKUP_FILE} (${SIZE})"
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Pruning backups older than ${RETENTION_DAYS} days ..."
+    find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+    REMAINING=$(ls "$BACKUP_DIR"/backup_*.sql.gz 2>/dev/null | wc -l)
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Retained ${REMAINING} backup file(s)."
+    ;;
+
+  verify-backup)
+    # Restore the latest backup to a temp database and run a sanity query.
+    LATEST=$(ls -t "$BACKUP_DIR"/backup_*.sql.gz 2>/dev/null | head -1)
+    if [ -z "$LATEST" ]; then
+      echo "No backups found in $BACKUP_DIR"
+      exit 1
+    fi
+    echo "Verifying backup: $LATEST"
+    TEMP_DB="${DB_NAME}_verify_$$"
+    $COMPOSE exec -T $DB_SERVICE psql -U $DB_USER -c "CREATE DATABASE ${TEMP_DB};" postgres
+    zcat "$LATEST" | $COMPOSE exec -T $DB_SERVICE psql -U $DB_USER -d $TEMP_DB -q
+    ROWS=$($COMPOSE exec -T $DB_SERVICE psql -U $DB_USER -d $TEMP_DB -t -c "SELECT COUNT(*) FROM "user";" | tr -d " 
+")
+    $COMPOSE exec -T $DB_SERVICE psql -U $DB_USER -c "DROP DATABASE ${TEMP_DB};" postgres
+    echo "Restore verification passed. Users in backup: ${ROWS}"
+    ;;
+
   *)
     echo "Astro Portal Database Management"
     echo ""
-    echo "Migrations:"
-    echo "  ./scripts/db.sh init                    First-time setup"
+    echo "NOTE: First-run setup is now automatic. 'docker compose up --build' runs"
+    echo "      migrations and seeds the admin inside the backend entrypoint. This"
+    echo "      script is for power-user operations on an already-running stack:"
+    echo "      adding new migrations, backups/restores, ad-hoc SQL, and inspection."
+    echo ""
+    echo "Migrations (run against a running stack):"
     echo "  ./scripts/db.sh revision \"msg\"          Create new migration"
     echo "  ./scripts/db.sh auto-migrate            Auto-detect & apply changes"
     echo "  ./scripts/db.sh migrate                 Apply pending migrations"
     echo "  ./scripts/db.sh downgrade [n]           Downgrade n steps (default: 1)"
     echo "  ./scripts/db.sh history                 Show migration history"
     echo "  ./scripts/db.sh current                 Show current revision"
+    echo "  ./scripts/db.sh init                    Legacy first-time setup (no longer required)"
     echo ""
     echo "Backup & Restore:"
     echo "  ./scripts/db.sh backup                  Backup database (gzipped)"
+  echo "  ./scripts/db.sh auto-backup             Backup + prune old backups (cron-safe)"
+  echo "  ./scripts/db.sh verify-backup           Restore latest backup to temp DB and verify"
     echo "  ./scripts/db.sh restore <file>          Restore from backup"
-    echo "  ./scripts/db.sh reset                   Drop & recreate database"
+    echo "  ./scripts/db.sh reset                   Drop & recreate database (destructive!)"
     echo ""
     echo "Debug & Inspect:"
     echo "  ./scripts/db.sh shell                   Open psql shell"

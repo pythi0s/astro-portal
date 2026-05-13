@@ -1,159 +1,143 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-6">
+    <div class="page-header">
       <div>
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <p class="text-gray-500 text-sm mt-1">Welcome back, {{ auth.user?.full_name || 'Astrologer' }}</p>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Overview of your astrology practice</p>
       </div>
-      <div class="flex gap-2 items-center">
-        <!-- Date range filter -->
-        <select v-model="dateRange" @change="loadAll" class="form-select py-2">
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="365">Last year</option>
-        </select>
-        <router-link to="/customers/new" class="btn-primary">
+      <div class="flex gap-2">
+        <router-link to="/customers/new" class="btn btn-primary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
           New Customer
         </router-link>
-        <router-link to="/visits/new" class="border bg-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 flex items-center gap-1.5">
+        <router-link to="/visits/new" class="btn btn-secondary">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          New Visit
+          Log Visit
         </router-link>
       </div>
     </div>
 
-    <!-- Summary Cards - 6 KPIs -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-      <div v-for="card in cards" :key="card.label" class="bg-white rounded-xl shadow-sm p-5 border hover:shadow-md transition-shadow">
-        <div class="flex items-start justify-between">
-          <div>
-            <p class="text-sm text-gray-500">{{ card.label }}</p>
-            <p class="text-2xl font-bold mt-1">{{ card.value }}</p>
-            <p v-if="card.sub" class="text-xs mt-1" :class="card.subColor || 'text-gray-400'">{{ card.sub }}</p>
-          </div>
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg" :class="card.iconBg || 'bg-primary-50'">{{ card.icon }}</div>
-        </div>
+    <!-- KPI Cards Row 1 -->
+    <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Customers</p>
+        <p class="text-2xl font-extrabold text-gray-900 mt-1">{{ stats.total_customers }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ stats.active_customers }} active</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">New This Month</p>
+        <p class="text-2xl font-extrabold text-blue-600 mt-1">{{ stats.new_customers_this_month }}</p>
+        <p class="text-xs text-gray-400 mt-1">customers added</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Visits This Month</p>
+        <p class="text-2xl font-extrabold text-emerald-600 mt-1">{{ stats.visits_this_month }}</p>
+        <p class="text-xs text-gray-400 mt-1">consultations</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Revenue (Month)</p>
+        <p class="text-2xl font-extrabold text-gray-900 mt-1">&#x20B9;{{ fmtCurrency(stats.revenue_this_month) }}</p>
+        <p class="text-xs text-gray-400 mt-1">paid collections</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending Payments</p>
+        <p class="text-2xl font-extrabold text-red-600 mt-1">&#x20B9;{{ fmtCurrency(stats.pending_payments) }}</p>
+        <p class="text-xs text-gray-400 mt-1">yet to collect</p>
+      </div>
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg Fee / Visit</p>
+        <p class="text-2xl font-extrabold text-amber-600 mt-1">&#x20B9;{{ avgFee }}</p>
+        <p class="text-xs text-gray-400 mt-1">this month</p>
       </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-      <!-- Earnings Chart -->
-      <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold">Earnings Overview</h2>
-          <select v-model="period" @change="loadEarnings" class="form-select py-1.5">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </div>
-        <Bar v-if="chartData" :data="chartData" :options="barOptions" style="max-height: 280px" />
-        <div v-else class="flex items-center justify-center h-64 text-gray-400">
-          <div class="text-center">
-            <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            <p>No earnings data yet</p>
-          </div>
-        </div>
-        <div v-if="earnings" class="mt-4 pt-4 border-t flex gap-6 text-sm">
-          <div><span class="text-gray-500">Total: </span><span class="font-semibold">₹{{ Number(earnings.grand_total).toLocaleString() }}</span></div>
-          <div><span class="text-gray-500">Period: </span><span class="font-medium capitalize">{{ earnings.period }}</span></div>
-        </div>
+    <!-- Period selector for earnings -->
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-sm font-semibold text-gray-600">Earnings:</span>
+      <div class="flex gap-1">
+        <button v-for="d in [30, 90, 365]" :key="d" @click="earningsDays = d; loadEarnings()"
+          class="px-3 py-1 text-xs rounded-lg font-medium transition-colors"
+          :class="earningsDays === d ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'">
+          {{ d === 30 ? '30 days' : d === 90 ? '90 days' : '1 year' }}
+        </button>
       </div>
-
-      <!-- Payment Status Doughnut -->
-      <div class="bg-white rounded-xl shadow-sm p-6 border">
-        <h2 class="text-lg font-semibold mb-4">Payment Status</h2>
-        <Doughnut v-if="doughnutData" :data="doughnutData" :options="doughnutOptions" />
-        <div v-else class="flex items-center justify-center h-48 text-gray-400 text-sm">No payment data</div>
-        <div v-if="paymentStats" class="mt-4 space-y-2">
-          <div class="flex justify-between text-sm">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Paid</span>
-            <span class="font-medium">{{ paymentStats.paid }}</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Pending</span>
-            <span class="font-medium">{{ paymentStats.pending }}</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-sky-400 inline-block"></span> Partial</span>
-            <span class="font-medium">{{ paymentStats.partial }}</span>
-          </div>
-          <div class="flex justify-between text-sm">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-gray-300 inline-block"></span> Waived</span>
-            <span class="font-medium">{{ paymentStats.waived }}</span>
-          </div>
-        </div>
+      <div class="flex gap-1 ml-2">
+        <button v-for="p in ['weekly','monthly']" :key="p" @click="earningsPeriod = p; loadEarnings()"
+          class="px-3 py-1 text-xs rounded-lg font-medium capitalize transition-colors"
+          :class="earningsPeriod === p ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'">
+          {{ p }}
+        </button>
       </div>
     </div>
 
-    <!-- Bottom Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Recent Visits -->
-      <div class="bg-white rounded-xl shadow-sm border">
-        <div class="flex items-center justify-between p-5 border-b">
-          <h2 class="text-lg font-semibold">Recent Visits</h2>
-          <router-link to="/customers" class="text-primary-600 text-sm hover:underline">View All</router-link>
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Charts area -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Earnings chart -->
+        <div class="card">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Earnings Overview</h3>
+          <div v-if="earningsData" class="h-72"><Bar :data="earningsChartData" :options="chartOptions" /></div>
+          <div v-else class="empty-state !py-8"><p class="text-gray-400 text-sm">No earnings data for this period</p></div>
         </div>
-        <div v-if="recentVisits.length" class="divide-y">
-          <div v-for="v in recentVisits" :key="v.id" class="p-4 flex items-center gap-3 hover:bg-gray-50 cursor-pointer" @click="$router.push(`/customers/${v.customer_id}`)">
-            <div class="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">🗓</div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium truncate">Customer #{{ v.customer_id }}</p>
-              <p class="text-xs text-gray-500">{{ v.consultation_type?.replace('_', ' ') }} · ₹{{ v.fees }}</p>
+
+        <!-- Payment status breakdown -->
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div class="card text-center">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <div class="text-right shrink-0">
-              <span class="text-xs px-2 py-0.5 rounded-full" :class="v.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">{{ v.payment_status }}</span>
-              <p class="text-xs text-gray-400 mt-1">{{ formatDate(v.visit_date) }}</p>
+            <p class="text-xs font-semibold text-gray-500 uppercase">Paid</p>
+            <p class="text-lg font-extrabold text-emerald-600">{{ earningsTotals.paid }}</p>
+            <p class="text-xs text-gray-400">&#x20B9;{{ fmtCurrency(earningsTotals.paidAmount) }}</p>
+          </div>
+          <div class="card text-center">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
+            <p class="text-xs font-semibold text-gray-500 uppercase">Pending</p>
+            <p class="text-lg font-extrabold text-amber-600">{{ earningsTotals.totalVisits - earningsTotals.paid }}</p>
+            <p class="text-xs text-gray-400">&#x20B9;{{ fmtCurrency(earningsTotals.pendingAmount) }}</p>
+          </div>
+          <div class="card text-center">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-2">
+              <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            </div>
+            <p class="text-xs font-semibold text-gray-500 uppercase">Collection Rate</p>
+            <p class="text-lg font-extrabold text-blue-600">{{ collectionRate }}%</p>
+            <p class="text-xs text-gray-400">of total fees</p>
           </div>
         </div>
-        <div v-else class="p-8 text-center text-gray-400 text-sm">No visits recorded yet</div>
       </div>
 
-      <!-- Quick Stats & Links -->
+      <!-- Sidebar -->
       <div class="space-y-6">
-        <!-- Solution Categories -->
-        <div class="bg-white rounded-xl shadow-sm border">
-          <div class="flex items-center justify-between p-5 border-b">
-            <h2 class="text-lg font-semibold">Solution Categories</h2>
-            <router-link to="/solutions" class="text-primary-600 text-sm hover:underline">Manage</router-link>
-          </div>
-          <div v-if="solutionStats.length" class="p-5 space-y-3">
-            <div v-for="s in solutionStats" :key="s.category" class="flex items-center gap-3">
-              <div class="flex-1">
-                <div class="flex justify-between text-sm mb-1">
-                  <span class="capitalize font-medium">{{ s.category }}</span>
-                  <span class="text-gray-500">{{ s.count }}</span>
-                </div>
-                <div class="w-full bg-gray-100 rounded-full h-2">
-                  <div class="bg-primary-500 h-2 rounded-full transition-all" :style="{ width: s.pct + '%' }"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="p-8 text-center text-gray-400 text-sm">No solutions yet</div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-xl shadow-sm border p-5">
-          <h2 class="text-lg font-semibold mb-3">Quick Actions</h2>
-          <div class="grid grid-cols-2 gap-2">
+        <!-- Quick actions -->
+        <div class="card">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Quick Actions</h3>
+          <div class="space-y-2.5">
             <router-link to="/customers/new" class="action-link">
-              <span>👤</span> Add Customer
+              <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg></div>
+              Add Customer
             </router-link>
             <router-link to="/visits/new" class="action-link">
-              <span>🗓</span> Record Visit
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
+              Log Visit
             </router-link>
             <router-link to="/solutions/new" class="action-link">
-              <span>💎</span> Add Solution
+              <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center"><svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></div>
+              New Solution
             </router-link>
-            <router-link to="/templates/new" class="action-link">
-              <span>📧</span> New Template
+            <router-link to="/templates" class="action-link">
+              <div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
+              Message Templates
             </router-link>
           </div>
+        </div>
+
+        <!-- Payment doughnut -->
+        <div class="card" v-if="earningsData">
+          <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Payment Split</h3>
+          <div class="h-48"><Doughnut :data="paymentDoughnutData" :options="doughnutOptions" /></div>
         </div>
       </div>
     </div>
@@ -162,143 +146,92 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { getDashboard, getDashboardEarnings } from '@/api/dashboard'
 import { Bar, Doughnut } from 'vue-chartjs'
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
-import { getDashboardSummary, getDashboardEarnings } from '@/api/dashboard'
-import { listVisits } from '@/api/visits'
-import { listSolutions } from '@/api/solutions'
-import { useAuthStore } from '@/stores/auth'
-import dayjs from 'dayjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
-const auth = useAuthStore()
-const summary = ref(null)
-const earnings = ref(null)
-const period = ref('monthly')
-const dateRange = ref('90')
-const recentVisits = ref([])
-const solutionStats = ref([])
-const paymentStats = ref(null)
+const stats = ref(null)
+const earningsData = ref(null)
+const earningsDays = ref(30)
+const earningsPeriod = ref('weekly')
 
-function formatDate(d) { return d ? dayjs(d).format('DD MMM YYYY') : '—' }
-
-const cards = computed(() => {
-  if (!summary.value) return []
-  const s = summary.value
-  return [
-    { label: 'Total Customers', value: s.total_customers, icon: '👥', iconBg: 'bg-blue-50', sub: `${s.active_customers} active`, subColor: 'text-blue-500' },
-    { label: 'Visits This Month', value: s.visits_this_month, icon: '🗓', iconBg: 'bg-emerald-50', sub: `${s.new_customers_this_month} new customers`, subColor: 'text-emerald-500' },
-    { label: 'Revenue This Month', value: `₹${Number(s.revenue_this_month).toLocaleString()}`, icon: '💰', iconBg: 'bg-amber-50', sub: 'Paid visits only', subColor: 'text-gray-400' },
-    { label: 'Pending Payments', value: `₹${Number(s.pending_payments).toLocaleString()}`, icon: '⌛', iconBg: 'bg-red-50', sub: 'Needs follow-up', subColor: s.pending_payments > 0 ? 'text-red-500' : 'text-gray-400' },
-    { label: 'Avg Fee/Visit', value: avgFee.value, icon: '📈', iconBg: 'bg-purple-50', sub: 'Based on all visits', subColor: 'text-purple-500' },
-    { label: 'Collection Rate', value: collectionRate.value, icon: '✅', iconBg: 'bg-teal-50', sub: 'Paid / Total', subColor: 'text-teal-500' },
-  ]
-})
+function fmtCurrency(v) { return Number(v || 0).toLocaleString('en-IN') }
 
 const avgFee = computed(() => {
-  if (!paymentStats.value) return '₹0'
-  const total = paymentStats.value.paid + paymentStats.value.pending + paymentStats.value.partial + paymentStats.value.waived
-  if (total === 0) return '₹0'
-  const totalFees = allVisits.value.reduce((s, v) => s + Number(v.fees || 0), 0)
-  return `₹${Math.round(totalFees / total).toLocaleString()}`
+  if (!stats.value || !stats.value.visits_this_month) return '0'
+  return fmtCurrency(Math.round(Number(stats.value.revenue_this_month || 0) / stats.value.visits_this_month))
+})
+
+const earningsTotals = computed(() => {
+  if (!earningsData.value?.breakdown?.length) return { paid: 0, paidAmount: 0, pendingAmount: 0, totalVisits: 0, grandTotal: 0 }
+  const b = earningsData.value.breakdown
+  const paid = b.reduce((s, x) => s + x.paid_count, 0)
+  const totalVisits = b.reduce((s, x) => s + x.visit_count, 0)
+  const paidAmount = Number(earningsData.value.grand_total) - b.reduce((s, x) => s + Number(x.pending_amount), 0)
+  const pendingAmount = b.reduce((s, x) => s + Number(x.pending_amount), 0)
+  return { paid, paidAmount, pendingAmount, totalVisits, grandTotal: Number(earningsData.value.grand_total) }
 })
 
 const collectionRate = computed(() => {
-  if (!paymentStats.value) return '0%'
-  const total = paymentStats.value.paid + paymentStats.value.pending + paymentStats.value.partial + paymentStats.value.waived
-  if (total === 0) return '0%'
-  return Math.round((paymentStats.value.paid / total) * 100) + '%'
+  const t = earningsTotals.value
+  if (!t.grandTotal) return 0
+  return Math.round((t.paidAmount / t.grandTotal) * 100)
 })
 
-const allVisits = ref([])
-
-const chartData = computed(() => {
-  if (!earnings.value?.breakdown?.length) return null
+const earningsChartData = computed(() => {
+  if (!earningsData.value?.breakdown?.length) return null
+  const b = earningsData.value.breakdown
   return {
-    labels: earnings.value.breakdown.map((b) => b.label),
+    labels: b.map(x => x.label),
     datasets: [
-      { label: 'Collected', data: earnings.value.breakdown.map((b) => Number(b.total_fees) - Number(b.pending_amount)), backgroundColor: '#059669', borderRadius: 4 },
-      { label: 'Pending', data: earnings.value.breakdown.map((b) => Number(b.pending_amount)), backgroundColor: '#fbbf24', borderRadius: 4 },
-    ],
+      {
+        label: 'Collected',
+        data: b.map(x => Number(x.total_fees) - Number(x.pending_amount)),
+        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        borderRadius: 6, borderSkipped: false,
+      },
+      {
+        label: 'Pending',
+        data: b.map(x => Number(x.pending_amount)),
+        backgroundColor: 'rgba(245, 158, 11, 0.5)',
+        borderRadius: 6, borderSkipped: false,
+      },
+    ]
   }
 })
 
-const barOptions = {
-  responsive: true,
-  plugins: { legend: { position: 'bottom' } },
-  scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { callback: v => '₹' + v.toLocaleString() } } },
-}
-
-const doughnutData = computed(() => {
-  if (!paymentStats.value) return null
-  const s = paymentStats.value
-  const total = s.paid + s.pending + s.partial + s.waived
-  if (total === 0) return null
+const paymentDoughnutData = computed(() => {
+  const t = earningsTotals.value
   return {
-    labels: ['Paid', 'Pending', 'Partial', 'Waived'],
-    datasets: [{ data: [s.paid, s.pending, s.partial, s.waived], backgroundColor: ['#059669', '#fbbf24', '#38bdf8', '#d1d5db'], borderWidth: 0, spacing: 2 }],
+    labels: ['Collected', 'Pending'],
+    datasets: [{ data: [t.paidAmount, t.pendingAmount], backgroundColor: ['#10b981', '#f59e0b'], borderWidth: 0, hoverOffset: 6 }]
   }
 })
 
-const doughnutOptions = {
-  responsive: true,
-  cutout: '65%',
-  plugins: { legend: { display: false } },
+const chartOptions = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 11 } } }, tooltip: { backgroundColor: '#1f2937', titleFont: { weight: '600' }, bodyFont: { size: 13 }, padding: 10, cornerRadius: 8 } },
+  scales: {
+    y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 11 }, callback: (v) => '\u20B9' + v.toLocaleString('en-IN') }, grid: { color: 'rgba(0,0,0,.04)' } },
+    x: { stacked: true, ticks: { font: { size: 10 } }, grid: { display: false } }
+  }
 }
-
-async function loadSummary() {
-  const { data } = await getDashboardSummary()
-  summary.value = data
+const doughnutOptions = {
+  responsive: true, maintainAspectRatio: false, cutout: '65%',
+  plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } } }
 }
 
 async function loadEarnings() {
-  const { data } = await getDashboardEarnings({ period: period.value, days: Number(dateRange.value) })
-  earnings.value = data
-}
-
-async function loadRecentVisits() {
   try {
-    const { data } = await listVisits({ limit: 5 })
-    recentVisits.value = Array.isArray(data) ? data.slice(0, 5) : []
-  } catch { recentVisits.value = [] }
+    const { data } = await getDashboardEarnings({ period: earningsPeriod.value, days: earningsDays.value })
+    earningsData.value = data
+  } catch (e) { console.error('Earnings load failed', e) }
 }
 
-async function loadSolutionStats() {
-  try {
-    const { data } = await listSolutions({ is_active: true })
-    const cats = {}
-    for (const s of (Array.isArray(data) ? data : [])) {
-      cats[s.category] = (cats[s.category] || 0) + 1
-    }
-    const total = Object.values(cats).reduce((a, b) => a + b, 0) || 1
-    solutionStats.value = Object.entries(cats)
-      .sort((a, b) => b[1] - a[1])
-      .map(([category, count]) => ({ category, count, pct: Math.round((count / total) * 100) }))
-  } catch { solutionStats.value = [] }
-}
-
-async function loadPaymentStats() {
-  try {
-    const { data } = await listVisits({})
-    const visits = Array.isArray(data) ? data : []
-    allVisits.value = visits
-    paymentStats.value = {
-      paid: visits.filter(v => v.payment_status === 'paid').length,
-      pending: visits.filter(v => v.payment_status === 'pending').length,
-      partial: visits.filter(v => v.payment_status === 'partial').length,
-      waived: visits.filter(v => v.payment_status === 'waived').length,
-    }
-  } catch { paymentStats.value = null }
-}
-
-function loadAll() {
-  loadSummary()
-  loadEarnings()
-  loadRecentVisits()
-  loadSolutionStats()
-  loadPaymentStats()
-}
-
-onMounted(loadAll)
+onMounted(async () => {
+  try { const { data } = await getDashboard(); stats.value = data } catch (e) { console.error('Dashboard load failed', e) }
+  await loadEarnings()
+})
 </script>

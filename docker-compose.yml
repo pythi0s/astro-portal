@@ -1,16 +1,31 @@
+# Astro Portal — single-file operator experience.
+#
+# First-run:
+#   cp .env.example .env
+#   # edit SECRET_KEY, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD at minimum
+#   docker compose up --build
+#
+# Wait for the line `astro-portal: READY` (printed by the bootstrap sidecar).
+# All other commands are for power users; they are documented in README.md
+# and ./scripts/db.sh.
+
 services:
   db:
     image: postgres:18-alpine
+    env_file:
+      - ./.env
     environment:
-      POSTGRES_USER: crm_user
-      POSTGRES_PASSWORD: crm_password
-      POSTGRES_DB: crm_database
+      POSTGRES_USER: ${POSTGRES_USER:-crm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crm_password}
+      POSTGRES_DB: ${POSTGRES_DB:-crm_database}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crm_user -d crm_database"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crm_user} -d ${POSTGRES_DB:-crm_database}"]
       interval: 5s
-      retries: 5
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
@@ -19,50 +34,139 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
+      timeout: 3s
       retries: 5
+      start_period: 5s
 
   backend:
     build:
       context: ./backend
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-crm_user}:${POSTGRES_PASSWORD:-crm_password}@db:5432/${POSTGRES_DB:-crm_database}}
     volumes:
       - ./backend:/workspace
       - uploads:/workspace/uploads
     ports:
       - "8000:8000"
-    env_file:
-      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      # Python is already installed; avoids pulling curl/wget into the image.
+      test:
+        - "CMD"
+        - "python3"
+        - "-c"
+        - "import urllib.request, sys; r = urllib.request.urlopen('http://localhost:8000/health', timeout=3); sys.exit(0 if r.status == 200 else 1)"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    # ENTRYPOINT from the Dockerfile (docker-entrypoint.sh) runs migrations +
+    # seed before uvicorn binds. Passing just the uvicorn command here keeps
+    # the entrypoint reusable (it `exec "$@"`).
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   celery-worker:
     build:
       context: ./backend
+    env_file:
+      - ./.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-crm_user}:${POSTGRES_PASSWORD:-crm_password}@db:5432/${POSTGRES_DB:-crm_database}}
     volumes:
       - ./backend:/workspace
       - uploads:/workspace/uploads
-    env_file:
-      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uv run celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+      backend:
+        condition: service_healthy
+    # Override the backend entrypoint: the worker only needs to wait for the
+    # DB. Migrations and seed are the backend service's job.
+    entrypoint: ["/workspace/docker-entrypoint-worker.sh"]
+    command: ["uv", "run", "celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
     profiles:
       - with-celery
 
   frontend:
     build:
       context: ./frontend
+    env_file:
+      - ./.env
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://backend:8000}
     volumes:
       - ./frontend:/app
       - /app/node_modules
     ports:
       - "5173:5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:5173/ >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  frontend-react:
+    build:
+      context: ./frontend-react
+      target: development
+    env_file:
+      - ./.env
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://backend:8000}
+      VITE_CURRENCY: ${VITE_CURRENCY:-INR}
+      # When unset, Vite defaults to base='/'. Operators can set VITE_BASE=/app/
+      # in .env to move the React app under a subpath for the nginx profile.
+      VITE_BASE: ${VITE_BASE:-/}
+    volumes:
+      - ./frontend-react:/app
+      - /app/node_modules
+    ports:
+      - "5174:5174"
+    depends_on:
+      backend:
+        condition: service_healthy
+    # Healthcheck must hit the same path Vite serves the app at. `$${VAR}`
+    # escapes compose interpolation so the container shell expands VITE_BASE
+    # at runtime; defaults to '/' if unset.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:5174$${VITE_BASE:-/} >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # READY-banner sidecar. Prints exactly one block when every long-running
+  # service is healthy, then exits 0. It is the single user-facing signal that
+  # the stack is fully bootstrapped.
+  bootstrap:
+    build:
+      context: ./ops/bootstrap
+    environment:
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      BACKEND_HEALTH_URL: http://backend:8000/health?deep=1
+      API_PUBLIC_URL: http://localhost:8000
+      # Banner URL respects VITE_BASE so operators following the with-nginx
+      # flow see the correct /app/ suffix without having to hand-edit.
+      FRONTEND_REACT_PUBLIC_URL: http://localhost:5174${VITE_BASE:-/}
+      FRONTEND_VUE_PUBLIC_URL: http://localhost:5173
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      frontend-react:
+        condition: service_healthy
+    restart: "no"
 
   nginx:
     image: nginx:alpine
@@ -73,8 +177,12 @@ services:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      frontend-react:
+        condition: service_healthy
     profiles:
       - with-nginx
 

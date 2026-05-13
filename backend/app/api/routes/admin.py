@@ -1,15 +1,15 @@
 # app/api/routes/admin.py
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, func
+from sqlmodel import func, select
 
-from app.core.security import get_current_user, hash_password, require_role
+from app.core.security import hash_password, require_role
 from app.db.database import get_session
 from app.models.user import User, UserRole
-from app.schemas.auth import UserCreate, UserRead
+from app.schemas.auth import AdminStats, UserCreate, UserRead
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -21,8 +21,8 @@ _admin_only = require_role([UserRole.admin])
 
 @router.get("/users", response_model=list[UserRead])
 async def list_users(
-    role: Optional[UserRole] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    role: UserRole | None = Query(None),
+    is_active: bool | None = Query(None),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(_admin_only),
 ):
@@ -72,16 +72,13 @@ async def create_user(
     return user
 
 
-from pydantic import BaseModel
-
-
 class AdminUserUpdate(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    role: Optional[UserRole] = None
-    is_active: Optional[bool] = None
+    email: str | None = None
+    password: str | None = None
+    full_name: str | None = None
+    phone: str | None = None
+    role: UserRole | None = None
+    is_active: bool | None = None
 
 
 @router.put("/users/{user_id}", response_model=UserRead)
@@ -143,20 +140,20 @@ async def deactivate_user(
     return {"detail": f"User {user.email} deactivated"}
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=AdminStats)
 async def admin_stats(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(_admin_only),
 ):
     total = await session.execute(select(func.count()).select_from(User))
     active = await session.execute(
-        select(func.count()).select_from(User).where(User.is_active == True)
+        select(func.count()).select_from(User).where(User.is_active == True)  # noqa: E712
     )
     admins = await session.execute(
         select(func.count()).select_from(User).where(User.role == UserRole.admin)
     )
-    return {
-        "total_users": total.scalar(),
-        "active_users": active.scalar(),
-        "admin_count": admins.scalar(),
-    }
+    return AdminStats(
+        total_users=total.scalar() or 0,
+        active_users=active.scalar() or 0,
+        admin_count=admins.scalar() or 0,
+    )

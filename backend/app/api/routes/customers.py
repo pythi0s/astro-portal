@@ -1,9 +1,9 @@
 # app/api/routes/customers.py
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from app.core.security import get_current_user
@@ -14,7 +14,13 @@ from app.models.customer_solution import CustomerSolution
 from app.models.solution import Solution
 from app.models.user import User
 from app.models.visit import Visit
-from app.schemas.customer import CustomerCreate, CustomerList, CustomerRead, CustomerUpdate
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerList,
+    CustomerRead,
+    CustomerReadDetail,
+    CustomerUpdate,
+)
 from app.schemas.solution import CustomerSolutionHistory
 from app.schemas.visit import VisitRead
 
@@ -34,10 +40,10 @@ async def create_customer(
     return customer
 
 
-@router.get("/", response_model=list[CustomerRead])
+@router.get("/", response_model=list[CustomerList])
 async def list_customers(
-    search: Optional[str] = Query(None, description="Search by name, phone, or email"),
-    is_active: Optional[bool] = Query(None),
+    search: str | None = Query(None, description="Search by name, phone, or email"),
+    is_active: bool | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
@@ -58,13 +64,20 @@ async def list_customers(
     return result.scalars().all()
 
 
-@router.get("/{customer_id}", response_model=CustomerRead)
+@router.get("/{customer_id}", response_model=CustomerReadDetail)
 async def get_customer(
     customer_id: int,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    result = await session.execute(select(Customer).where(Customer.id == customer_id))
+    result = await session.execute(
+        select(Customer)
+        .where(Customer.id == customer_id)
+        .options(
+            selectinload(Customer.visits),
+            selectinload(Customer.customer_solutions).selectinload(CustomerSolution.solution),
+        )
+    )
     customer = result.scalar_one_or_none()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")

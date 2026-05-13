@@ -1,8 +1,6 @@
-# app/schemas/auth.py
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 
 from app.models.user import UserRole
 
@@ -21,7 +19,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     full_name: str = ""
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole = UserRole.astrologer
 
 
@@ -29,7 +27,7 @@ class UserRead(BaseModel):
     id: int
     email: str
     full_name: str
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole
     is_active: bool
     created_at: datetime
@@ -38,5 +36,27 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
+    full_name: str | None = None
+    phone: str | None = None
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8)
+
+
+class BootstrapRequest(BaseModel):
+    """Body for POST /auth/bootstrap. Role is always forced to admin server-side;
+    a `role` field in the request is intentionally absent to avoid confusion.
+    """
+
+    email: str
+    password: str = Field(..., min_length=8)
+    full_name: str = ""
+    phone: str | None = None
+
+
+class AdminStats(BaseModel):
+    total_users: int
+    active_users: int
+    admin_count: int

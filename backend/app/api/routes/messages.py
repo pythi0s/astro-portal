@@ -1,6 +1,6 @@
 # app/api/routes/messages.py
+import logging
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +21,15 @@ from app.schemas.message import (
     TemplateUpdate,
 )
 
+logger = logging.getLogger("uvicorn.error")
+
 router = APIRouter(tags=["messages"])
+
+
+# Generic operator-facing text stored on the log when a provider rejects the send.
+# The real exception (SMTP trace, Twilio error body, etc.) is logged server-side
+# only — never echoed to the API caller to avoid leaking provider config.
+_SANITIZED_SEND_ERROR = "Send failed — see server logs for details."
 
 
 # -- Template CRUD --
@@ -42,12 +50,12 @@ async def create_template(
 
 @router.get("/templates/", response_model=list[TemplateRead])
 async def list_templates(
-    channel: Optional[MessageChannel] = Query(None),
-    trigger_type: Optional[TriggerType] = Query(None),
+    channel: MessageChannel | None = Query(None),
+    trigger_type: TriggerType | None = Query(None),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    query = select(MessageTemplate).where(MessageTemplate.is_active == True)
+    query = select(MessageTemplate).where(MessageTemplate.is_active)
     if channel:
         query = query.where(MessageTemplate.channel == channel)
     if trigger_type:
@@ -126,13 +134,27 @@ async def send_email(
     if not customer.email:
         raise HTTPException(status_code=400, detail="Customer has no email address")
 
-    tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
-    template = tpl_result.scalar_one_or_none()
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+    template = None
+    rendered_subject = body.subject or ""
+    rendered_body = body.body or ""
+    channel = "email"
 
-    rendered_subject = _render_placeholders(template.subject or "", customer)
-    rendered_body = _render_placeholders(template.body, customer)
+    if body.template_id:
+        tpl_result = await session.execute(
+            select(MessageTemplate).where(MessageTemplate.id == body.template_id)
+        )
+        template = tpl_result.scalar_one_or_none()
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        rendered_subject = _render_placeholders(template.subject or "", customer)
+        rendered_body = _render_placeholders(template.body, customer)
+        channel = template.channel.value
+    elif not body.subject and not body.body:
+        raise HTTPException(status_code=400, detail="Provide either a template_id or subject/body")
+
+    # Apply placeholder rendering to custom subject/body too
+    rendered_subject = _render_placeholders(rendered_subject, customer)
+    rendered_body = _render_placeholders(rendered_body, customer)
 
     status = MessageStatus.pending
     error_msg = None
@@ -145,13 +167,14 @@ async def send_email(
         sent_at = datetime.utcnow()
     except Exception as e:
         status = MessageStatus.failed
-        error_msg = str(e)
+        error_msg = _SANITIZED_SEND_ERROR
+        logger.exception("send-email failed for customer_id=%s: %s", customer.id, e)
 
     log = MessageLog(
         customer_id=customer.id,
-        template_id=template.id,
+        template_id=template.id if template else None,
         visit_id=body.visit_id,
-        channel=template.channel.value,
+        channel=channel,
         recipient=customer.email,
         subject=rendered_subject,
         body_snapshot=rendered_body,
@@ -181,7 +204,9 @@ async def send_whatsapp_message(
     if not customer.phone:
         raise HTTPException(status_code=400, detail="Customer has no phone number")
 
-    tpl_result = await session.execute(select(MessageTemplate).where(MessageTemplate.id == body.template_id))
+    tpl_result = await session.execute(
+        select(MessageTemplate).where(MessageTemplate.id == body.template_id)
+    )
     template = tpl_result.scalar_one_or_none()
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -199,13 +224,14 @@ async def send_whatsapp_message(
         sent_at = datetime.utcnow()
     except Exception as e:
         status = MessageStatus.failed
-        error_msg = str(e)
+        error_msg = _SANITIZED_SEND_ERROR
+        logger.exception("send-whatsapp failed for customer_id=%s: %s", customer.id, e)
 
     log = MessageLog(
         customer_id=customer.id,
         template_id=template.id,
         visit_id=body.visit_id,
-        channel="whatsapp",
+        channel=template.channel.value,
         recipient=customer.phone,
         subject=None,
         body_snapshot=rendered_body,
@@ -224,8 +250,8 @@ async def send_whatsapp_message(
 
 @router.get("/messages/log", response_model=list[MessageLogRead])
 async def get_message_log(
-    customer_id: Optional[int] = Query(None),
-    channel: Optional[str] = Query(None),
+    customer_id: int | None = Query(None),
+    channel: str | None = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),

@@ -1,6 +1,5 @@
 # app/api/routes/solutions.py
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,8 +29,9 @@ async def create_solution(
 
 @router.get("/", response_model=list[SolutionRead])
 async def list_solutions(
-    category: Optional[SolutionCategory] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    category: SolutionCategory | None = Query(None),
+    is_active: bool | None = Query(None),
+    search: str | None = Query(None, description="Substring match on name or description"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
@@ -42,6 +42,11 @@ async def list_solutions(
         query = query.where(Solution.category == category)
     if is_active is not None:
         query = query.where(Solution.is_active == is_active)
+    if search:
+        like = f"%{search}%"
+        query = query.where(
+            (Solution.name.ilike(like)) | (Solution.description.ilike(like))
+        )
     query = query.order_by(Solution.name).offset(skip).limit(limit)
     result = await session.execute(query)
     return result.scalars().all()

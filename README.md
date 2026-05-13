@@ -1,4 +1,4 @@
-# ✨ Astro Portal CRM
+# ✨ व्यंकटेश प्रतिष्ठाण CRM
 
 A full-stack CRM application built for astrologers to manage customers, visits, solutions, and communications. Features a beautiful mandala-themed UI, persistent sessions, and Docker-based deployment.
 
@@ -135,34 +135,58 @@ A full-stack CRM application built for astrologers to manage customers, visits, 
 
 ## Quick Start
 
+The entire first-run experience on any machine with Docker Desktop (or Docker Engine + Compose v2) is three commands:
+
 ```bash
-# Clone and enter
 git clone <repo-url> && cd astro-portal
-
-# Copy environment file
-cp backend/.env.example backend/.env
-# Edit backend/.env with your settings (at minimum, set SECRET_KEY)
-
-# Start core services (db, backend, frontend)
+cp .env.example .env           # edit SECRET_KEY, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD
 docker compose up --build
-
-# Initialize database (first time only)
-./scripts/db.sh init
-
-# Create first admin user
-curl -X POST http://localhost:8000/auth/bootstrap \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "changeme", "full_name": "Admin"}'
 ```
+
+Wait for a single line in the logs:
+
+```
+astro-portal: READY
+Frontend (React): http://localhost:5174
+Frontend (Vue):   http://localhost:5173
+API:              http://localhost:8000
+API Docs:         http://localhost:8000/docs
+Admin:            <your SEED_ADMIN_EMAIL>
+```
+
+That banner is printed by the `bootstrap` sidecar after every other service's healthcheck is green. Log in to either frontend with the `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` you set in `.env`.
+
+### What happens on first run
+
+The backend container has a small entrypoint script (`backend/docker-entrypoint.sh`) that runs, in order, before uvicorn binds the port:
+
+1. **Waits for Postgres** to accept a `SELECT 1` query (up to 60 s).
+2. **Runs migrations** — `alembic upgrade head`. Failure exits non-zero, so Docker's restart policy surfaces it instead of serving traffic against a broken schema.
+3. **Seeds the first admin** from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` — idempotent. Existing admins are never overwritten.
+4. **Starts uvicorn.**
+
+Subsequent starts are no-ops for migrations and seeding: the entrypoint logs "admin exists, skipping" and moves on. `docker compose down -v` wipes the DB volume and re-bootstraps cleanly on the next `up`.
+
+> **Manual admin bootstrap** is still available via `POST /auth/bootstrap` if you prefer not to set env vars — it is automatically disabled once an admin exists.
 
 **Access Points:**
 
 | Service        | URL                              |
 | -------------- | -------------------------------- |
-| Frontend       | http://localhost:5173            |
+| Frontend (React) | http://localhost:5174          |
+| Frontend (Vue)   | http://localhost:5173          |
 | Backend API    | http://localhost:8000            |
 | API Docs       | http://localhost:8000/docs       |
-| With Nginx     | http://localhost (port 80)       |
+| Health (fast)  | http://localhost:8000/health     |
+| Health (deep)  | http://localhost:8000/health?deep=1 |
+| With Nginx (Vue) | http://localhost (port 80)     |
+| With Nginx (React) | http://localhost/app/ (requires `VITE_BASE=/app/`) |
+
+> **Reverse-proxying the React app under a subpath** (e.g. `/app/`) requires setting `VITE_BASE=/app/` in `.env`. Vite then serves every asset + the HMR WebSocket under that prefix, and the nginx `/app/` `location` block in `nginx/default.conf` forwards verbatim. With VITE_BASE set, the React app is reachable at both `http://localhost:5174/app/` (direct) and `http://localhost/app/` (via nginx). Without `VITE_BASE`, nginx `/app/` returns 404.
+
+### `./scripts/db.sh` — power-user operations
+
+`./scripts/db.sh` is no longer part of the first-run path. It remains available for operations on an already-running stack: adding new migrations (`revision`, `auto-migrate`), backups (`backup`, `restore`, `reset`), and ad-hoc SQL (`shell`, `tables`, `count`, `size`, `describe`, `query`). Run `./scripts/db.sh` with no arguments to see the full help.
 
 ---
 
@@ -188,8 +212,10 @@ docker compose --profile with-celery --profile with-nginx up --build
 | -------------- | ---------------------- | ------------- | -------------------------------- |
 | db             | postgres:18-alpine     | default       | PostgreSQL database              |
 | redis          | redis:7-alpine         | default       | Cache / Celery broker            |
-| backend        | python:3.11-slim + uv  | default       | FastAPI application              |
-| frontend       | node:20-alpine         | default       | Vue 3 / Vite dev server          |
+| backend        | python:3.11-slim + uv  | default       | FastAPI application (migrates + seeds at entrypoint) |
+| frontend       | node:20-alpine         | default       | Vue 3 / Vite dev server (5173)   |
+| frontend-react | node:20-alpine         | default       | React / Vite dev server (5174)   |
+| bootstrap      | alpine:3.20            | default       | READY-banner sidecar, exits 0 after full stack is healthy |
 | celery-worker  | (same as backend)      | with-celery   | Async email/WhatsApp processing  |
 | nginx          | nginx:alpine           | with-nginx    | Reverse proxy + SSL termination  |
 
@@ -314,6 +340,12 @@ See `nginx/ssl/README.md` for Let's Encrypt certificate instructions.
 | `TWILIO_WHATSAPP_FROM`   | No       | —                        | Twilio WhatsApp sender number      |
 | `CELERY_BROKER_URL`      | No       | `redis://redis:6379/0`   | Redis URL for Celery broker        |
 | `CELERY_RESULT_BACKEND`  | No       | `redis://redis:6379/1`   | Redis URL for Celery results       |
+| `BOOTSTRAP_ADMIN_EMAIL`  | No       | —                        | Auto-create admin with this email on first start |
+| `BOOTSTRAP_ADMIN_PASSWORD`| No      | —                        | Password for auto-created admin |
+| `BOOTSTRAP_ADMIN_NAME`   | No       | `Admin`                  | Display name for auto-created admin |
+| `BOOTSTRAP_ADMIN_EMAIL`  | No       | —                        | Auto-create admin with this email on first start |
+| `BOOTSTRAP_ADMIN_PASSWORD`| No      | —                        | Password for auto-created admin |
+| `BOOTSTRAP_ADMIN_NAME`   | No       | `Admin`                  | Display name for auto-created admin |
 | `UPLOAD_DIR`             | No       | `/workspace/uploads`     | File upload directory              |
 
 ---

@@ -1,6 +1,5 @@
 # app/schemas/message.py
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -12,17 +11,17 @@ class TemplateCreate(BaseModel):
     name: str
     channel: MessageChannel = MessageChannel.email
     trigger_type: TriggerType = TriggerType.custom
-    subject: Optional[str] = None
+    subject: str | None = None
     body: str
 
 
 class TemplateUpdate(BaseModel):
-    name: Optional[str] = None
-    channel: Optional[MessageChannel] = None
-    trigger_type: Optional[TriggerType] = None
-    subject: Optional[str] = None
-    body: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    channel: MessageChannel | None = None
+    trigger_type: TriggerType | None = None
+    subject: str | None = None
+    body: str | None = None
+    is_active: bool | None = None
 
 
 class TemplateRead(BaseModel):
@@ -30,7 +29,7 @@ class TemplateRead(BaseModel):
     name: str
     channel: MessageChannel
     trigger_type: TriggerType
-    subject: Optional[str] = None
+    subject: str | None = None
     body: str
     is_active: bool
     created_at: datetime
@@ -41,28 +40,30 @@ class TemplateRead(BaseModel):
 
 class SendEmailRequest(BaseModel):
     customer_id: int
-    template_id: int
-    visit_id: Optional[int] = None
+    template_id: int | None = None
+    visit_id: int | None = None
+    subject: str | None = None
+    body: str | None = None
 
 
 class SendWhatsAppRequest(BaseModel):
     customer_id: int
     template_id: int
-    visit_id: Optional[int] = None
+    visit_id: int | None = None
 
 
 class MessageLogRead(BaseModel):
     id: int
     customer_id: int
-    template_id: Optional[int] = None
-    visit_id: Optional[int] = None
+    template_id: int | None = None
+    visit_id: int | None = None
     channel: str
     recipient: str
-    subject: Optional[str] = None
-    body_snapshot: Optional[str] = None
+    subject: str | None = None
+    body_snapshot: str | None = None
     status: MessageStatus
-    error_message: Optional[str] = None
-    sent_at: Optional[datetime] = None
+    error_message: str | None = None
+    sent_at: datetime | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
