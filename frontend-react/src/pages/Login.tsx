@@ -171,11 +171,11 @@ export function Login() {
         <div className="rounded-2xl border border-amber-200/80 bg-white/92 p-7 shadow-[0_22px_50px_rgba(146,64,14,0.18)] backdrop-blur-sm sm:p-8">
           <div className="mb-6 flex flex-col items-center text-center">
             <img
-              src="/logo.png"
+              src="/vynkatesh_pratishthan_logo.png"
               alt="व्यंकटेश प्रतिष्ठाण"
               className="h-48 w-auto object-contain drop-shadow-md sm:h-60"
             />
-            <h1 className="mt-4 px-2 text-center text-3xl font-extrabold leading-[1.35] text-amber-900 sm:text-4xl">
+              <h1 className="mt-4 px-2 text-center text-3xl font-extrabold leading-[1.35] text-amber-900 sm:text-4xl">
               व्यंकटेश प्रतिष्ठाण
             </h1>
             <p className="mt-2 text-sm font-medium tracking-wide text-amber-800/75">

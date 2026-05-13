@@ -9,10 +9,8 @@
     <div class="relative z-10 w-full max-w-md mx-4 animate-slide-up">
       <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
         <div class="text-center mb-8">
-          <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg">
-            <span class="text-3xl">&#x2728;</span>
-          </div>
-          <h1 class="text-2xl font-extrabold gradient-text">Astro Portal</h1>
+          <img src="/vynkatesh_pratishthan_logo.png" alt="व्यंकटेश प्रतिष्ठाण" class="h-24 w-auto mx-auto mb-4 object-contain drop-shadow-md" />
+            <h1 class="text-2xl font-extrabold gradient-text">व्यंकटेश प्रतिष्ठाण</h1>
           <p class="text-gray-500 text-sm mt-1">Sign in to manage your practice</p>
         </div>
 

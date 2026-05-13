@@ -16,9 +16,9 @@
       @mouseleave="!sidebarPinned && (sidebarOpen = false)"
     >
       <!-- Logo -->
-      <div class="h-16 flex items-center border-b border-white/10 px-4 gap-3 shrink-0">
-        <span class="text-2xl">&#x2728;</span>
-        <span v-if="!sidebarCollapsed || !sidebarPinned || sidebarOpen" class="text-lg font-extrabold tracking-wide whitespace-nowrap">Astro Portal</span>
+      <div class="h-14 flex items-center border-b border-white/10 px-2.5 gap-3 shrink-0">
+        <img src="/vynkatesh_pratishthan_logo.png" alt="व्यंकटेश प्रतिष्ठाण" class="h-8 w-auto object-contain" />
+        <span v-if="!sidebarCollapsed || !sidebarPinned || sidebarOpen" class="text-xs font-extrabold tracking-wide whitespace-nowrap">व्यंकटेश प्रतिष्ठाण</span>
       </div>
 
       <!-- Nav -->
@@ -55,7 +55,7 @@
     <!-- Main area -->
     <div class="flex-1 flex flex-col overflow-hidden min-w-0">
       <!-- Top header bar -->
-      <header class="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm z-20">
+      <header class="h-14 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm z-20">
         <div class="flex items-center gap-3">
           <button v-if="!sidebarPinned" @click="sidebarOpen = !sidebarOpen"
             class="p-2 rounded-xl hover:bg-gray-100 transition-colors">
@@ -71,8 +71,8 @@
             </template>
           </nav>
         </div>
-        <div class="flex items-center gap-4">
-          <span class="text-sm font-semibold text-primary-600 hidden md:inline">&#x2728; Astro Portal</span>
+        <div class="flex items-center gap-2.5">
+          <img src="/vynkatesh_pratishthan_logo.png" alt="व्यंकटेश प्रतिष्ठाण" class="hidden md:block h-7 w-auto object-contain" />
           <div class="relative">
             <button @click="showUserMenu = !showUserMenu"
               class="flex items-center gap-2 hover:bg-gray-100 rounded-full p-1 pr-3 transition-colors">
@@ -288,7 +288,7 @@ async function handleLogout() {
   const ok = await showConfirm({
     title: 'Sign Out',
     subtitle: 'You will be logged out',
-    message: 'Are you sure you want to sign out of Astro Portal?',
+    message: 'Are you sure you want to sign out of व्यंकटेश प्रतिष्ठाण?',
     type: 'warning',
     confirmLabel: 'Sign Out',
   })
