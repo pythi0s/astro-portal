@@ -3,7 +3,6 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 import { RoleGate } from '@/components/RoleGate';
-import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
