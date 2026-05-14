@@ -77,7 +77,12 @@ describe('<CustomerNewPage />', () => {
       {
         route: '/customers/new',
         extraRoutes: [
-          { path: '/customers/:id', element: <div data-testid="detail-landing">detail</div> },
+          // Must be exact (not `/customers/:id`) — react-router v6 ranks
+          // `/customers/:id` higher than the catch-all `*` that
+          // `renderWithProviders` mounts the page under, so a `:id` extra
+          // route would also match the initial `/customers/new` URL and
+          // render this landing page instead of <CustomerNewPage />.
+          { path: '/customers/42', element: <div data-testid="detail-landing">detail</div> },
         ],
       },
     );
