@@ -56,10 +56,10 @@ function installDashboardHandlers() {
     // Returning the same payload for both calls keeps the assertions on the
     // current-window numbers deterministic; delta KPIs will be 0% but the
     // test does not assert on them.
-    http.get('/dashboard/revenue', () => HttpResponse.json(sampleRevenue)),
-    http.get('/dashboard/earnings', () => HttpResponse.json(emptyEarnings)),
-    http.get('/dashboard/revenue-by-category', () => HttpResponse.json(emptyCategories)),
-    http.get('/visits/', () => HttpResponse.json(emptyVisits)),
+    http.get('/api/dashboard/revenue', () => HttpResponse.json(sampleRevenue)),
+    http.get('/api/dashboard/earnings', () => HttpResponse.json(emptyEarnings)),
+    http.get('/api/dashboard/revenue-by-category', () => HttpResponse.json(emptyCategories)),
+    http.get('/api/visits/', () => HttpResponse.json(emptyVisits)),
   );
 }
 

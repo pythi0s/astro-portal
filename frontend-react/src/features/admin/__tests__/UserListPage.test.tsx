@@ -34,8 +34,8 @@ describe('<UserListPage />', () => {
     });
 
     server.use(
-      http.get('/admin/stats', () => HttpResponse.json(sampleStats)),
-      http.get('/admin/users', () =>
+      http.get('/api/admin/stats', () => HttpResponse.json(sampleStats)),
+      http.get('/api/admin/users', () =>
         HttpResponse.json([
           makeUser(10, { full_name: 'Meera Rao', role: 'admin' }),
           makeUser(11, { full_name: 'Arun Iyer', role: 'astrologer' }),
@@ -88,10 +88,10 @@ describe('<UserListPage />', () => {
     });
 
     server.use(
-      http.get('/admin/stats', () =>
+      http.get('/api/admin/stats', () =>
         HttpResponse.json({ detail: 'boom' }, { status: 500 }),
       ),
-      http.get('/admin/users', () => HttpResponse.json([])),
+      http.get('/api/admin/users', () => HttpResponse.json([])),
     );
 
     renderWithProviders(<UserListPage />, { route: '/admin/users' });
@@ -108,8 +108,8 @@ describe('<UserListPage />', () => {
 
     const seenRoleParams: Array<string | null> = [];
     server.use(
-      http.get('/admin/stats', () => HttpResponse.json(sampleStats)),
-      http.get('/admin/users', ({ request }) => {
+      http.get('/api/admin/stats', () => HttpResponse.json(sampleStats)),
+      http.get('/api/admin/users', ({ request }) => {
         const url = new URL(request.url);
         seenRoleParams.push(url.searchParams.get('role'));
         return HttpResponse.json([makeUser(99, { role: 'admin' })]);

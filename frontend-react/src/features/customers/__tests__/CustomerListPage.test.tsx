@@ -37,7 +37,7 @@ describe('<CustomerListPage />', () => {
     });
 
     server.use(
-      http.get('/customers/', () => HttpResponse.json(firstPage)),
+      http.get('/api/customers/', () => HttpResponse.json(firstPage)),
     );
 
     renderWithProviders(<CustomerListPage />, { route: '/customers' });
@@ -65,7 +65,7 @@ describe('<CustomerListPage />', () => {
 
     const seenSearches: string[] = [];
     server.use(
-      http.get('/customers/', ({ request }) => {
+      http.get('/api/customers/', ({ request }) => {
         const url = new URL(request.url);
         const search = url.searchParams.get('search');
         if (search) seenSearches.push(search);
@@ -110,7 +110,7 @@ describe('<CustomerListPage />', () => {
     });
 
     server.use(
-      http.get('/customers/', () => HttpResponse.json([])),
+      http.get('/api/customers/', () => HttpResponse.json([])),
     );
 
     renderWithProviders(<CustomerListPage />, { route: '/customers' });

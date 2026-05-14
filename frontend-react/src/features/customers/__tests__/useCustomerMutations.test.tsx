@@ -145,7 +145,7 @@ describe('useUpdateCustomer cache merge', () => {
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
     server.use(
-      http.put('/customers/1', () =>
+      http.put('/api/customers/1', () =>
         HttpResponse.json(slimResponse(1, { name: 'Updated Name', city: 'Bengaluru' })),
       ),
     );
@@ -175,7 +175,7 @@ describe('useUploadPhoto cache merge', () => {
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
     server.use(
-      http.post('/customers/1/photo', () =>
+      http.post('/api/customers/1/photo', () =>
         HttpResponse.json(slimResponse(1, { photo_path: '/uploads/photos/x.jpg' })),
       ),
     );
@@ -203,7 +203,7 @@ describe('useUploadKundali cache merge', () => {
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
     server.use(
-      http.post('/customers/1/kundali', () =>
+      http.post('/api/customers/1/kundali', () =>
         HttpResponse.json(
           slimResponse(1, {
             kundali_file_path: '/uploads/kundali/k.pdf',

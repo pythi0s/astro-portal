@@ -63,7 +63,7 @@ describe('<CustomerNewPage />', () => {
 
     let receivedBody: Record<string, unknown> | null = null;
     server.use(
-      http.post('/customers/', async ({ request }) => {
+      http.post('/api/customers/', async ({ request }) => {
         receivedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json(makeSlimCustomer({ id: 42, name: 'Ada Lovelace' }));
       }),
@@ -102,7 +102,7 @@ describe('<CustomerNewPage />', () => {
     });
 
     server.use(
-      http.post('/customers/', () =>
+      http.post('/api/customers/', () =>
         HttpResponse.json({ detail: 'boom' }, { status: 500 }),
       ),
     );
