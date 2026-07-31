@@ -8,7 +8,7 @@ A full-stack CRM application built for astrologers to manage customers, visits, 
 
 | Layer     | Technology                                                  |
 | --------- | ----------------------------------------------------------- |
-| Frontend  | Vue 3 (Composition API), Vite, Tailwind CSS, Pinia, Chart.js |
+| Frontend  | React 18 (TypeScript), Vite, Tailwind CSS, TanStack Query, Zustand, Chart.js |
 | Backend   | FastAPI, SQLModel, SQLAlchemy 2.0 (async), Pydantic v2      |
 | Database  | PostgreSQL 18 (asyncpg)                                     |
 | Auth      | JWT (python-jose) + bcrypt, 24h tokens with auto-refresh    |
@@ -89,7 +89,7 @@ A full-stack CRM application built for astrologers to manage customers, visits, 
 ### UI/UX Design
 - Subtle mandala SVG background pattern across all pages (spiritual theme)
 - Collapsible sidebar: pin/unpin (auto-hide with hover), collapse/expand, mobile responsive
-- Global confirmation dialogs for all destructive actions (delete, deactivate) via Vue provide/inject
+- Global confirmation dialogs for all destructive actions (delete, deactivate) via a React context provider
 - Header bar with app branding, breadcrumb navigation, user dropdown menu
 - Orange-red primary color theme with Tailwind CSS custom palette
 - Login page with gradient background and centered card
@@ -97,7 +97,7 @@ A full-stack CRM application built for astrologers to manage customers, visits, 
 - Unicode emoji icons throughout the interface
 
 ### Infrastructure & DevOps
-- Docker Compose with 6 services: PostgreSQL, Redis, FastAPI backend, Vue frontend, Celery worker, Nginx
+- Docker Compose with 6 services: PostgreSQL, Redis, FastAPI backend, React frontend, Celery worker, Nginx
 - Docker profiles: `with-celery` for async workers, `with-nginx` for reverse proxy
 - Nginx reverse proxy with HTTP and HTTPS (SSL-ready) server blocks
 - Let's Encrypt SSL certificate instructions included
@@ -148,13 +148,12 @@ Wait for a single line in the logs:
 ```
 astro-portal: READY
 Frontend (React): http://localhost:5174
-Frontend (Vue):   http://localhost:5173
 API:              http://localhost:8000
 API Docs:         http://localhost:8000/docs
 Admin:            <your SEED_ADMIN_EMAIL>
 ```
 
-That banner is printed by the `bootstrap` sidecar after every other service's healthcheck is green. Log in to either frontend with the `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` you set in `.env`.
+That banner is printed by the `bootstrap` sidecar after every other service's healthcheck is green. Log in with the `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` you set in `.env`.
 
 ### What happens on first run
 
@@ -173,13 +172,11 @@ Subsequent starts are no-ops for migrations and seeding: the entrypoint logs "ad
 
 | Service        | URL                              |
 | -------------- | -------------------------------- |
-| Frontend (React) | http://localhost:5174          |
-| Frontend (Vue)   | http://localhost:5173          |
+| Frontend         | http://localhost:5174            |
 | Backend API    | http://localhost:8000            |
 | API Docs       | http://localhost:8000/docs       |
 | Health (fast)  | http://localhost:8000/health     |
 | Health (deep)  | http://localhost:8000/health?deep=1 |
-| With Nginx (Vue) | http://localhost (port 80)     |
 | With Nginx (React) | http://localhost/app/ (requires `VITE_BASE=/app/`) |
 
 > **Reverse-proxying the React app under a subpath** (e.g. `/app/`) requires setting `VITE_BASE=/app/` in `.env`. Vite then serves every asset + the HMR WebSocket under that prefix, and the nginx `/app/` `location` block in `nginx/default.conf` forwards verbatim. With VITE_BASE set, the React app is reachable at both `http://localhost:5174/app/` (direct) and `http://localhost/app/` (via nginx). Without `VITE_BASE`, nginx `/app/` returns 404.
@@ -213,7 +210,6 @@ docker compose --profile with-celery --profile with-nginx up --build
 | db             | postgres:18-alpine     | default       | PostgreSQL database              |
 | redis          | redis:7-alpine         | default       | Cache / Celery broker            |
 | backend        | python:3.11-slim + uv  | default       | FastAPI application (migrates + seeds at entrypoint) |
-| frontend       | node:20-alpine         | default       | Vue 3 / Vite dev server (5173)   |
 | frontend-react | node:20-alpine         | default       | React / Vite dev server (5174)   |
 | bootstrap      | alpine:3.20            | default       | READY-banner sidecar, exits 0 after full stack is healthy |
 | celery-worker  | (same as backend)      | with-celery   | Async email/WhatsApp processing  |
@@ -328,7 +324,7 @@ See `nginx/ssl/README.md` for Let's Encrypt certificate instructions.
 | `DATABASE_URL`           | Yes      | —                        | PostgreSQL async connection string |
 | `SECRET_KEY`             | Yes      | `change-me-in-production`| JWT signing key (change this!)     |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440`                   | JWT token lifetime (24 hours)      |
-| `BASE_URL`               | No       | `http://localhost:5173`  | Application base URL               |
+| `BASE_URL`               | No       | `http://localhost:5174`  | Application base URL               |
 | `DOMAIN`                 | No       | `localhost`              | Domain name for nginx/CORS         |
 | `SMTP_HOST`              | No       | —                        | SMTP server hostname               |
 | `SMTP_PORT`              | No       | `587`                    | SMTP port                          |
@@ -468,41 +464,31 @@ astro-portal/
 │           ├── celery_app.py       # Celery configuration
 │           └── messaging.py        # Async email/WhatsApp tasks
 │
-└── frontend/
-    ├── Dockerfile                  # Node 20-alpine
+└── frontend-react/
+    ├── Dockerfile                  # Multi-stage: dev + production (nginx)
+    ├── nginx-spa.conf              # Production static-file nginx config
     ├── package.json
-    ├── vite.config.js              # Vite + API proxy to backend
-    ├── tailwind.config.js          # Custom primary colors (orange-red theme)
+    ├── vite.config.ts              # Vite + API proxy to backend
+    ├── vitest.config.ts            # Vitest + Testing Library + MSW
+    ├── tailwind.config.js          # Orange/amber primary palette
+    ├── tsconfig.json
     ├── index.html
     └── src/
-        ├── main.js                 # App bootstrap (Pinia + Router)
-        ├── App.vue                 # Layout: sidebar, header, mandala bg, confirm dialog
-        ├── style.css               # Tailwind + mandala overlay + timeline CSS
-        ├── api/
-        │   ├── client.js           # Axios instance + auth interceptor + token refresh
-        │   ├── auth.js             # Login, refresh, me, register
-        │   ├── customers.js        # Customer API calls
-        │   ├── visits.js           # Visit API calls
-        │   ├── solutions.js        # Solution API calls
-        │   ├── messages.js         # Template + send API calls
-        │   ├── dashboard.js        # Dashboard stats
-        │   └── admin.js            # Admin user management
-        ├── stores/
-        │   └── auth.js             # Auth state: token, user, init, refresh, logout
-        ├── router/
-        │   └── index.js            # Routes + auth guard + session init
-        └── views/
-            ├── Login.vue           # Login form
-            ├── Dashboard.vue       # KPIs, charts, date filter, recent visits
-            ├── CustomerList.vue    # Customer table + KPIs + search
-            ├── CustomerDetail.vue  # Profile, timeline, solutions tabs + KPIs
-            ├── CustomerForm.vue    # Create/edit customer
-            ├── VisitForm.vue       # Create visit with solutions
-            ├── SolutionList.vue    # Solution grid + KPIs
-            ├── SolutionForm.vue    # Create/edit solution
-            ├── TemplateList.vue    # Templates + send + message log + KPIs
-            ├── TemplateForm.vue    # Create/edit template
-            └── AdminUsers.vue      # User management (admin only)
+        ├── main.tsx                # App bootstrap
+        ├── AppShell.tsx            # Layout: sidebar, top bar, main router-outlet
+        ├── router.tsx              # createBrowserRouter route table
+        ├── index.css               # Tailwind + design tokens
+        ├── api/                    # Axios client + auth interceptor + resource modules
+        ├── auth/                   # AuthProvider, RequireAuth, RequireRole
+        ├── components/             # Shared primitives (Button, DataTable, Tabs, Toast, …)
+        ├── features/               # Feature slices — customers, visits, solutions, templates, messages, admin, profile, dashboard
+        │   └── <feature>/          # Each has api.ts, schema.ts, types.ts, queryKeys.ts, hooks/, components/, pages/, __tests__/
+        ├── hooks/                  # Cross-feature hooks (e.g. useServerErrorToast)
+        ├── lib/                    # format, urlState, apiErrors helpers
+        ├── pages/                  # Standalone pages (Login, Dashboard, NotFound, Forbidden)
+        ├── providers/              # QueryProvider (TanStack Query)
+        ├── stores/                 # Zustand stores (auth)
+        └── test/                   # Vitest setup, MSW handlers, renderWithProviders
 ```
 
 ---
