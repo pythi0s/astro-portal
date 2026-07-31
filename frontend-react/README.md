@@ -6,8 +6,6 @@ Step 4 added the **Revenue Dashboard** at `/dashboard`; Step 5 ships the full
 feature surface — customers, visits, solutions, templates, messaging, admin
 user management, and a self-service profile page.
 
-The existing Vue app in `../frontend/` is **unchanged** and continues to serve
-production traffic until this app reaches feature parity.
 
 ---
 
@@ -24,7 +22,7 @@ production traffic until this app reaches feature parity.
 | Charts           | `recharts` (Step 4)                                 |
 | Forms            | `react-hook-form` v7 + `zod` v3 (Step 5)            |
 | Tables           | `@tanstack/react-table` v8 — headless (Step 5)      |
-| Styling          | Tailwind CSS (palette mirrored from `../frontend/`) |
+| Styling          | Tailwind CSS (orange/amber primary palette)         |
 
 No Redux and no Context for app state. Zustand owns auth; React Query owns
 every piece of server data displayed on `/dashboard`.
@@ -141,12 +139,12 @@ never comes into play in dev.
 
 ## Docker Compose
 
-The service is defined in `../docker-compose.yml` under the `react` profile so
-it does not start by default while the Vue app is still authoritative:
+The service is defined in `../docker-compose.yml` as the default frontend and
+starts alongside the backend on every `docker compose up`:
 
-```powershell
+```bash
 cd astro-portal
-docker compose --profile react up frontend-react
+docker compose up frontend-react
 # → http://localhost:5174
 ```
 
@@ -187,8 +185,6 @@ Manual smoke tests against a live backend:
   directly. Feature APIs (customers, visits, …) must import it, not axios.
 - `useAuth().hasRole('admin')` is the only supported way for UI components to
   conditionally render admin-only affordances. Never read `user.role` ad-hoc.
-- The Vue app in `../frontend/` will be retired once feature parity is reached
-  (Step 5 finishes). Until then, both apps talk to the same backend.
 
 ---
 
