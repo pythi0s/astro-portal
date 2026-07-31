@@ -4,12 +4,14 @@ import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 import { RoleGate } from '@/components/RoleGate';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Sheet } from '@/components/ui/Sheet';
 import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -47,7 +49,19 @@ export function TopBar() {
             />
             व्यंकटेश प्रतिष्ठाण
           </Link>
-          <nav aria-label="Primary" className="flex flex-wrap items-center gap-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open navigation menu"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-amber-300/60 bg-white/70 text-amber-800 backdrop-blur-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:hidden dark:border-violet-600/60 dark:bg-slate-800/70 dark:text-amber-300 dark:hover:bg-slate-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <nav aria-label="Primary" className="hidden md:flex flex-wrap items-center gap-1 text-sm">
             <NavItem to="/dashboard" label="Dashboard" />
             <NavItem to="/customers" label="Customers" />
             <NavItem to="/visits" label="Visits" />
@@ -107,6 +121,28 @@ export function TopBar() {
           )}
         </div>
       </div>
+      <Sheet
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        side="left"
+        title="Menu"
+      >
+        <nav
+          aria-label="Primary mobile"
+          className="flex flex-col gap-1 p-3 text-sm"
+          onClick={() => setMobileNavOpen(false)}
+        >
+          <NavItem to="/dashboard" label="Dashboard" />
+          <NavItem to="/customers" label="Customers" />
+          <NavItem to="/visits" label="Visits" />
+          <NavItem to="/solutions" label="Solutions" />
+          <NavItem to="/messages/send" label="Messages" />
+          <NavItem to="/templates" label="Templates" />
+          <RoleGate allow={['admin']}>
+            <NavItem to="/admin/users" label="Admin" />
+          </RoleGate>
+        </nav>
+      </Sheet>
     </header>
   );
 }

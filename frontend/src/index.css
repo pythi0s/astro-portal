@@ -144,3 +144,27 @@ html.dark .mandala-bg::before {
   opacity: 0.35;
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* ══════════════════════════════════════════
+   Sheet primitive — enter animations
+   ══════════════════════════════════════════ */
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sheet-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes sheet-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes sheet-in-top {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes sheet-in-bottom {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
