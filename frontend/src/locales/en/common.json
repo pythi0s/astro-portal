@@ -1,0 +1,31 @@
+{
+  "app": {
+    "brand": "व्यंकटेश प्रतिष्ठाण",
+    "signOut": "Sign out",
+    "signOutConfirmTitle": "Sign out?",
+    "signOutConfirmBody": "You will be returned to the login screen.",
+    "cancel": "Cancel",
+    "openMenu": "Open navigation menu",
+    "menu": "Menu"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "visits": "Visits",
+    "solutions": "Solutions",
+    "messages": "Messages",
+    "templates": "Templates",
+    "admin": "Admin"
+  },
+  "theme": {
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme"
+  },
+  "auth": {
+    "login": "Log in",
+    "email": "Email",
+    "password": "Password",
+    "loginPrompt": "Sign in to continue",
+    "loginError": "Invalid email or password"
+  }
+}

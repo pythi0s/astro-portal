@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 import { ToastProvider } from '@/components/Toast';
 import { ConfirmProvider } from '@/components/ConfirmProvider';
 
+import '@/i18n';
 import '@/api/auth';
 import '@/index.css';
 

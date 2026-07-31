@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/providers/ThemeProvider';
 import { cn } from '@/lib/cn';
 
@@ -9,8 +10,9 @@ import { cn } from '@/lib/cn';
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolved, toggle } = useTheme();
+  const { t } = useTranslation();
   const isDark = resolved === 'dark';
-  const label = isDark ? 'Switch to light theme' : 'Switch to dark theme';
+  const label = isDark ? t('theme.switchToLight') : t('theme.switchToDark');
   return (
     <button
       type="button"
