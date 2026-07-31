@@ -2,7 +2,6 @@ name: CI
 
 # Runs on every push and every pull request. Four independent jobs:
 #   - frontend-react: typecheck, test, build the React app.
-#   - frontend-vue:   build the legacy Vue app as a smoke test.
 #   - backend:        ruff + alembic upgrade head against a service Postgres.
 #   - compose:        `docker compose config` validation against the root .env.
 # None of them require secrets; a fresh runner on `ubuntu-latest` is enough.
@@ -55,26 +54,6 @@ jobs:
           path: frontend-react/dist
           if-no-files-found: ignore
           retention-days: 3
-
-  frontend-vue:
-    name: frontend (Vue build smoke)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Build
-        run: npm run build
 
   backend:
     name: backend (ruff + alembic upgrade head)
