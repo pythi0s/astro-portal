@@ -1,28 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 import { RoleGate } from '@/components/RoleGate';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Sheet } from '@/components/ui/Sheet';
+import { useConfirm } from '@/components/ConfirmProvider';
 import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
   const navigate = useNavigate();
-  const [showConfirm, setShowConfirm] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) {
-      setShowConfirm(false);
-    }
-  }, [isAuthenticated, user]);
+  const confirm = useConfirm();
 
   if (isBooting || !isAuthenticated || !user) return null;
 
-  function onLogout() {
-    setShowConfirm(false);
+  async function onLogout() {
+    const ok = await confirm({
+      title: 'Sign out?',
+      description: 'You will be returned to the login screen.',
+      confirmLabel: 'Sign out',
+      cancelLabel: 'Cancel',
+      danger: true,
+    });
+    if (!ok) return;
     logout();
     navigate('/login', { replace: true });
   }
@@ -90,35 +92,11 @@ export function TopBar() {
           </Link>
           <button
             type="button"
-            onClick={() => setShowConfirm(true)}
+            onClick={onLogout}
             className="btn-glass rounded-xl border border-red-300/70 bg-gradient-to-r from-red-100 via-red-200 to-red-100 px-3.5 py-1.5 text-sm font-semibold text-red-700 shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
           >
             Sign out
           </button>
-          {showConfirm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-              <div className="rounded-2xl border border-red-200/80 bg-white p-6 shadow-2xl ring-1 ring-red-100 w-72 text-center">
-                <p className="mb-1 text-lg font-semibold text-slate-800">Sign out?</p>
-                <p className="mb-5 text-sm text-slate-500">You will be returned to the login screen.</p>
-                <div className="flex gap-3 justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(false)}
-                    className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onLogout}
-                    className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       <Sheet
