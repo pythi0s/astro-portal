@@ -1,4 +1,4 @@
-# व्यंकटेश प्रतिष्ठाण — React Frontend (`frontend-react/`)
+# व्यंकटेश प्रतिष्ठाण — React Frontend (`frontend/`)
 
 React + TypeScript + Vite shell for the new व्यंकटेश प्रतिष्ठाण UI. Step 2 delivered the
 **auth foundation** (login, persistent session, silent refresh, role guards);
@@ -32,7 +32,7 @@ every piece of server data displayed on `/dashboard`.
 ## Directory layout
 
 ```
-frontend-react/
+frontend/
 ├── Dockerfile
 ├── index.html
 ├── package.json
@@ -114,7 +114,7 @@ the spinner.
 ## Local development
 
 ```powershell
-cd astro-portal/frontend-react
+cd astro-portal/frontend
 npm install
 copy .env.example .env      # adjust VITE_BACKEND_URL if the backend is elsewhere
 npm run dev                 # http://localhost:5174
@@ -144,7 +144,7 @@ starts alongside the backend on every `docker compose up`:
 
 ```bash
 cd astro-portal
-docker compose up frontend-react
+docker compose up frontend
 # → http://localhost:5174
 ```
 

@@ -12,7 +12,7 @@
 set -eu
 
 BACKEND_HEALTH_URL="${BACKEND_HEALTH_URL:-http://backend:8000/health?deep=1}"
-REACT_URL_PUBLIC="${FRONTEND_REACT_PUBLIC_URL:-http://localhost:5174}"
+FRONTEND_URL_PUBLIC="${FRONTEND_PUBLIC_URL:-http://localhost:5174}"
 API_URL_PUBLIC="${API_PUBLIC_URL:-http://localhost:8000}"
 ADMIN_EMAIL_DISPLAY="${SEED_ADMIN_EMAIL:-}"
 
@@ -45,7 +45,7 @@ fi
 
 printf '\n'
 printf 'astro-portal: READY\n'
-printf 'Frontend: %s\n' "${REACT_URL_PUBLIC}"
+printf 'Frontend: %s\n' "${FRONTEND_URL_PUBLIC}"
 printf 'API:              %s\n' "${API_URL_PUBLIC}"
 printf 'API Docs:         %s/docs\n' "${API_URL_PUBLIC}"
 printf 'Admin:            %s\n' "${ADMIN_EMAIL_DISPLAY}"

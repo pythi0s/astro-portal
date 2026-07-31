@@ -100,10 +100,10 @@ services:
           memory: 128M
 
   # ─────────────── REACT FRONTEND (production static build) ───────────────
-  frontend-react:
+  frontend:
     # Override the image to use the production build stage
     build:
-      context: ./frontend-react
+      context: ./frontend
       target: production
     # No bind-mounts in production
     volumes: []
@@ -147,7 +147,7 @@ services:
 # ─────────────── PRODUCTION NETWORKS ───────────────
 networks:
   edge:
-    # nginx, backend, frontend-react — exposed to the world via port mappings
+    # nginx, backend, frontend — exposed to the world via port mappings
     driver: bridge
   internal:
     # db, redis, celery-worker — no public port exposure

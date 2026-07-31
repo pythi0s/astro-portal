@@ -93,9 +93,9 @@ services:
     profiles:
       - with-celery
 
-  frontend-react:
+  frontend:
     build:
-      context: ./frontend-react
+      context: ./frontend
       target: development
     env_file:
       - ./.env
@@ -106,7 +106,7 @@ services:
       # in .env to move the React app under a subpath for the nginx profile.
       VITE_BASE: ${VITE_BASE:-/}
     volumes:
-      - ./frontend-react:/app
+      - ./frontend:/app
       - /app/node_modules
     ports:
       - "5174:5174"
@@ -135,11 +135,11 @@ services:
       API_PUBLIC_URL: http://localhost:8000
       # Banner URL respects VITE_BASE so operators following the with-nginx
       # flow see the correct /app/ suffix without having to hand-edit.
-      FRONTEND_REACT_PUBLIC_URL: http://localhost:5174${VITE_BASE:-/}
+      FRONTEND_PUBLIC_URL: http://localhost:5174${VITE_BASE:-/}
     depends_on:
       backend:
         condition: service_healthy
-      frontend-react:
+      frontend:
         condition: service_healthy
     restart: "no"
 
@@ -154,7 +154,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-      frontend-react:
+      frontend:
         condition: service_healthy
     profiles:
       - with-nginx

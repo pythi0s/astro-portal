@@ -210,7 +210,7 @@ docker compose --profile with-celery --profile with-nginx up --build
 | db             | postgres:18-alpine     | default       | PostgreSQL database              |
 | redis          | redis:7-alpine         | default       | Cache / Celery broker            |
 | backend        | python:3.11-slim + uv  | default       | FastAPI application (migrates + seeds at entrypoint) |
-| frontend-react | node:20-alpine         | default       | React / Vite dev server (5174)   |
+| frontend       | node:20-alpine         | default       | React / Vite dev server (5174)   |
 | bootstrap      | alpine:3.20            | default       | READY-banner sidecar, exits 0 after full stack is healthy |
 | celery-worker  | (same as backend)      | with-celery   | Async email/WhatsApp processing  |
 | nginx          | nginx:alpine           | with-nginx    | Reverse proxy + SSL termination  |
@@ -464,7 +464,7 @@ astro-portal/
 │           ├── celery_app.py       # Celery configuration
 │           └── messaging.py        # Async email/WhatsApp tasks
 │
-└── frontend-react/
+└── frontend/
     ├── Dockerfile                  # Multi-stage: dev + production (nginx)
     ├── nginx-spa.conf              # Production static-file nginx config
     ├── package.json

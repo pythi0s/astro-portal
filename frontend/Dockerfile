@@ -1,5 +1,5 @@
 # =============================================================================
-# frontend-react Dockerfile — two named build stages
+# frontend Dockerfile — two named build stages
 #
 #   development  (default for docker-compose.yml)
 #     Runs the Vite dev server with HMR. Source code is bind-mounted by
