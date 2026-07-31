@@ -1,0 +1,31 @@
+{
+  "app": {
+    "brand": "व्यंकटेश प्रतिष्ठाण",
+    "signOut": "साइन आउट",
+    "signOutConfirmTitle": "साइन आउट करें?",
+    "signOutConfirmBody": "आपको लॉगिन स्क्रीन पर वापस भेजा जाएगा।",
+    "cancel": "रद्द करें",
+    "openMenu": "नेविगेशन मेनू खोलें",
+    "menu": "मेनू"
+  },
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "customers": "ग्राहक",
+    "visits": "मुलाकातें",
+    "solutions": "समाधान",
+    "messages": "संदेश",
+    "templates": "टेम्प्लेट",
+    "admin": "एडमिन"
+  },
+  "theme": {
+    "switchToLight": "लाइट थीम पर स्विच करें",
+    "switchToDark": "डार्क थीम पर स्विच करें"
+  },
+  "auth": {
+    "login": "लॉग इन करें",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "loginPrompt": "जारी रखने के लिए साइन इन करें",
+    "loginError": "अमान्य ईमेल या पासवर्ड"
+  }
+}
