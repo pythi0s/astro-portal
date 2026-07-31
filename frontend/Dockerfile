@@ -15,7 +15,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 # ci installs exact locked versions; falls back to install when lock is absent
-RUN npm ci || npm install
+RUN npm install --no-audit --no-fund
 
 # ─── Stage 2: development (default) ─────────────────────────────────────────
 FROM deps AS development
