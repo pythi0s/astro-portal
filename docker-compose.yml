@@ -93,28 +93,6 @@ services:
     profiles:
       - with-celery
 
-  frontend:
-    build:
-      context: ./frontend
-    env_file:
-      - ./.env
-    environment:
-      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://backend:8000}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:5173/ >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-
   frontend-react:
     build:
       context: ./frontend-react
@@ -158,11 +136,8 @@ services:
       # Banner URL respects VITE_BASE so operators following the with-nginx
       # flow see the correct /app/ suffix without having to hand-edit.
       FRONTEND_REACT_PUBLIC_URL: http://localhost:5174${VITE_BASE:-/}
-      FRONTEND_VUE_PUBLIC_URL: http://localhost:5173
     depends_on:
       backend:
-        condition: service_healthy
-      frontend:
         condition: service_healthy
       frontend-react:
         condition: service_healthy
@@ -178,8 +153,6 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       backend:
-        condition: service_healthy
-      frontend:
         condition: service_healthy
       frontend-react:
         condition: service_healthy

@@ -125,13 +125,6 @@ services:
           cpus: "0.5"
           memory: 128M
 
-  # ─────────────── VUE FRONTEND (disabled in production — drop cleanly) ───────────────
-  # React is the production primary frontend. Vue is dev-only.
-  # We override it to not publish ports and to depend on nothing production-critical.
-  frontend:
-    profiles:
-      - dev-vue-only
-
   # ─────────────── NGINX (always on in production) ───────────────
   nginx:
     restart: unless-stopped
@@ -154,7 +147,7 @@ services:
 # ─────────────── PRODUCTION NETWORKS ───────────────
 networks:
   edge:
-    # nginx, backend, frontend — exposed to the world via port mappings
+    # nginx, backend, frontend-react — exposed to the world via port mappings
     driver: bridge
   internal:
     # db, redis, celery-worker — no public port exposure
