@@ -47,6 +47,12 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-crm_user}:${POSTGRES_PASSWORD:-crm_password}@db:5432/${POSTGRES_DB:-crm_database}}
     volumes:
       - ./backend:/workspace
+      # Anonymous volume shields the image-built venv from the host bind
+      # mount above. Without this, a stale/broken host ./backend/.venv
+      # (e.g. root-owned symlinks from a previous container) shadows the
+      # image's /workspace/.venv and `uv run` fails at startup with
+      # "not a valid Python environment".
+      - /workspace/.venv
       - uploads:/workspace/uploads
     ports:
       - "8000:8000"
@@ -78,6 +84,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-crm_user}:${POSTGRES_PASSWORD:-crm_password}@db:5432/${POSTGRES_DB:-crm_database}}
     volumes:
       - ./backend:/workspace
+      # See backend service — same anonymous-volume trick keeps the
+      # image's venv from being shadowed by the host bind mount.
+      - /workspace/.venv
       - uploads:/workspace/uploads
     depends_on:
       db:
