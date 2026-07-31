@@ -14,8 +14,11 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-# ci installs exact locked versions; falls back to install when lock is absent
-RUN npm ci || npm install
+# No lockfile is committed (yet), so run a plain install.  --no-audit and
+# --no-fund keep the build output clean and slightly faster; they match the
+# same flags used by CI (.github/workflows/ci.yml).  When a package-lock.json
+# is eventually committed, switch this back to `npm ci` for reproducibility.
+RUN npm install --no-audit --no-fund
 
 # ─── Stage 2: development (default) ─────────────────────────────────────────
 FROM deps AS development
