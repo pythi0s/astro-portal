@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 import { RoleGate } from '@/components/RoleGate';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
@@ -59,6 +60,7 @@ export function TopBar() {
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
+          <ThemeToggle />
           <Link
             to="/profile"
             title={displayName}
