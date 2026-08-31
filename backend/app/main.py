@@ -8,10 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.health import router as health_router
-from app.api.routes import admin, auth, customers, dashboard, messages, solutions, timeline, visits
+from app.api.routes import (
+    admin,
+    auth,
+    automation_rules,
+    customers,
+    dashboard,
+    messages,
+    solutions,
+    timeline,
+    visits,
+)
 from app.core.config import settings
 from app.core.logger import configure_logging, get_logger
-from app.core.startup import run_auto_setup
 
 configure_logging()
 logger = get_logger(__name__)
@@ -20,7 +29,6 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("application startup", extra={"service": "astro-portal-backend"})
-    await run_auto_setup()
     yield
     logger.info("application shutdown")
 
@@ -80,6 +88,7 @@ app.include_router(solutions.router)
 app.include_router(timeline.router)
 app.include_router(messages.router)
 app.include_router(dashboard.router)
+app.include_router(automation_rules.router)
 app.include_router(admin.router)
 
 

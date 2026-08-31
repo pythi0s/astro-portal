@@ -127,6 +127,19 @@ const ProfilePage = lazyRoute(
   'ProfilePage',
 );
 
+const AutomationListPage = lazyRoute(
+  () => import('@/features/automation/pages/AutomationListPage'),
+  'AutomationListPage',
+);
+const AutomationNewPage = lazyRoute(
+  () => import('@/features/automation/pages/AutomationNewPage'),
+  'AutomationNewPage',
+);
+const AutomationEditPage = lazyRoute(
+  () => import('@/features/automation/pages/AutomationEditPage'),
+  'AutomationEditPage',
+);
+
 export const router = createBrowserRouter([
   {
     element: <AppShell />,
@@ -151,20 +164,28 @@ export const router = createBrowserRouter([
           { path: '/visits/:id', element: VisitDetailPage },
           { path: '/visits/:id/edit', element: VisitEditPage },
 
-          { path: '/solutions', element: SolutionListPage },
-          { path: '/solutions/new', element: SolutionNewPage },
-          { path: '/solutions/:id/edit', element: SolutionEditPage },
+          {
+            element: <RequireRole allow={['admin', 'astrologer']} />,
+            children: [
+              { path: '/solutions', element: SolutionListPage },
+              { path: '/solutions/new', element: SolutionNewPage },
+              { path: '/solutions/:id/edit', element: SolutionEditPage },
 
-          { path: '/templates', element: TemplateListPage },
-          { path: '/templates/new', element: TemplateNewPage },
-          { path: '/templates/:id/edit', element: TemplateEditPage },
+              { path: '/templates', element: TemplateListPage },
+              { path: '/templates/new', element: TemplateNewPage },
+              { path: '/templates/:id/edit', element: TemplateEditPage },
 
-          { path: '/messages/send', element: SendMessagePage },
-          { path: '/messages/log', element: MessageLogPage },
+              { path: '/messages/send', element: SendMessagePage },
+              { path: '/messages/log', element: MessageLogPage },
+            ],
+          },
 
           {
             element: <RequireRole allow={['admin']} />,
             children: [
+              { path: '/admin/automation', element: AutomationListPage },
+              { path: '/admin/automation/new', element: AutomationNewPage },
+              { path: '/admin/automation/:id/edit', element: AutomationEditPage },
               { path: '/admin/users', element: UserListPage },
               { path: '/admin/users/new', element: UserNewPage },
               { path: '/admin/users/:id', element: UserDetailPage },

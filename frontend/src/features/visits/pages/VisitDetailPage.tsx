@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Button, LinkButton } from '@/components/Button';
+import { RoleGate } from '@/components/RoleGate';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/Skeleton';
 import { useConfirm } from '@/components/ConfirmProvider';
@@ -73,9 +74,11 @@ export default function VisitDetailPage() {
             <LinkButton href={`/visits/${data.id}/edit`} variant="primary">
               Edit
             </LinkButton>
-            <Button variant="danger" onClick={onDelete} disabled={deactivate.isPending}>
-              {deactivate.isPending ? 'Deactivating…' : 'Deactivate'}
-            </Button>
+            <RoleGate allow={['admin', 'astrologer']}>
+              <Button variant="danger" onClick={onDelete} disabled={deactivate.isPending}>
+                {deactivate.isPending ? 'Deactivating…' : 'Deactivate'}
+              </Button>
+            </RoleGate>
           </>
         }
       >

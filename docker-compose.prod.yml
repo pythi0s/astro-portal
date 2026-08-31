@@ -55,8 +55,9 @@ services:
   backend:
     restart: unless-stopped
     # Production: do NOT bind-mount source code
-    volumes:
+    volumes: !override
       - uploads:/workspace/uploads
+    ports: !override []
     # Remove the --reload flag; replace with production uvicorn settings
     command:
       - "uv"
@@ -85,10 +86,10 @@ services:
   celery-worker:
     restart: unless-stopped
     # Production: do NOT bind-mount source code
-    volumes:
+    volumes: !override
       - uploads:/workspace/uploads
     # Remove the profile so it runs by default in production
-    profiles: []
+    profiles: !override []
     networks:
       - internal
     deploy:
@@ -99,6 +100,21 @@ services:
         reservations:
           memory: 128M
 
+  # ─────────────── CELERY BEAT ───────────────
+  celery-beat:
+    restart: unless-stopped
+    volumes: !override []
+    profiles: !override []
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          memory: 64M
+
   # ─────────────── REACT FRONTEND (production static build) ───────────────
   frontend:
     # Override the image to use the production build stage
@@ -106,13 +122,12 @@ services:
       context: ./frontend
       target: production
     # No bind-mounts in production
-    volumes: []
+    volumes: !override []
+    ports: !override []
     # Static files are served by nginx inside the container; no Vite dev server
     # The container nginx listens on 3000 (see production Dockerfile)
-    ports:
-      - "5174:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -T 3 -O - http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -Y off -q -T 3 -O - http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -129,9 +144,15 @@ services:
   nginx:
     restart: unless-stopped
     # Remove the profile so nginx runs by default in production
-    profiles: []
+    profiles: !override []
     networks:
       - edge
+    healthcheck:
+      test: ["CMD-SHELL", "wget -Y off -q -T 3 -O - http://127.0.0.1/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:

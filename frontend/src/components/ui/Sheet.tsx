@@ -113,21 +113,20 @@ export function Sheet({
         tabIndex={-1}
         className={cn(
           'fixed z-[71] flex flex-col bg-white shadow-2xl outline-none border-slate-200',
-          'dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100',
           sideClasses[side],
           enterAnim[side],
           className,
         )}
       >
         {(title || description) && (
-          <header className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+          <header className="border-b border-slate-200 px-4 py-3">
             {title && (
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-sm font-semibold text-slate-900">
                 {title}
               </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-600">
                 {description}
               </p>
             )}

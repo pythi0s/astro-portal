@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import JSON, Column
+from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
 from app.models.message_template import MessageChannel
@@ -24,9 +25,14 @@ class AutomationTrigger(enum.StrEnum):
 class AutomationRule(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
-    trigger: AutomationTrigger = Field(index=True)
+    trigger: AutomationTrigger = Field(
+        sa_column=Column(SAEnum(AutomationTrigger, native_enum=False), nullable=False, index=True)
+    )
     template_id: int = Field(foreign_key="messagetemplate.id", index=True)
-    channel: MessageChannel = Field(default=MessageChannel.email)
+    channel: MessageChannel = Field(
+        default=MessageChannel.email,
+        sa_column=Column(SAEnum(MessageChannel, native_enum=False), nullable=False),
+    )
     # Number of days to offset the send from the trigger event
     # (0 = same day; +7 = seven days after; -1 = one day before).
     offset_days: int = Field(default=0)

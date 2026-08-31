@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import JSON, Column
+from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
 from app.models.message_template import MessageChannel
@@ -22,13 +23,23 @@ class ScheduleStatus(enum.StrEnum):
 class MessageSchedule(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     template_id: int = Field(foreign_key="messagetemplate.id", index=True)
-    channel: MessageChannel = Field(default=MessageChannel.email)
+    automation_rule_id: int | None = Field(
+        default=None, foreign_key="automationrule.id", index=True
+    )
+    event_key: str | None = Field(default=None, unique=True, index=True)
+    channel: MessageChannel = Field(
+        default=MessageChannel.email,
+        sa_column=Column(SAEnum(MessageChannel, native_enum=False), nullable=False),
+    )
     # Segment filter used to expand the schedule into recipients at run time.
     #   Same shape as AutomationRule.filter.
     target_query: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     scheduled_for: datetime = Field(index=True)
     timezone: str = Field(default="Asia/Kolkata")
-    status: ScheduleStatus = Field(default=ScheduleStatus.pending, index=True)
+    status: ScheduleStatus = Field(
+        default=ScheduleStatus.pending,
+        sa_column=Column(SAEnum(ScheduleStatus, native_enum=False), nullable=False, index=True),
+    )
     created_by: int | None = Field(default=None, foreign_key="user.id")
     sent_count: int = Field(default=0)
     failed_count: int = Field(default=0)

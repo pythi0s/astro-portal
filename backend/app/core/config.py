@@ -1,7 +1,12 @@
-from pydantic_settings import BaseSettings
+from typing import Self
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     database_url: str
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 1440  # 24 hours
@@ -54,8 +59,13 @@ class Settings(BaseSettings):
 
     upload_dir: str = "/workspace/uploads"
 
-    class Config:
-        env_file = ".env"
+    @model_validator(mode="after")
+    def reject_credentialed_wildcard_cors(self) -> Self:
+        if self.cors_allow_credentials and "*" in self.cors_origin_list:
+            raise ValueError(
+                "CORS_ORIGINS cannot contain '*' when CORS_ALLOW_CREDENTIALS is true"
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:

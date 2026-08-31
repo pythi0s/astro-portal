@@ -15,11 +15,8 @@
     "solutions": "Solutions",
     "messages": "Messages",
     "templates": "Templates",
+    "automation": "Automation",
     "admin": "Admin"
-  },
-  "theme": {
-    "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
   },
   "auth": {
     "login": "Log in",

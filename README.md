@@ -201,18 +201,26 @@ docker compose --profile with-nginx up --build
 
 # Everything
 docker compose --profile with-celery --profile with-nginx up --build
+
+# Production (APP_ENV_FILE is defined inside .env.production)
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  --env-file .env.production \
+  up -d --build
 ```
 
 ### Services
 
 | Service        | Image                  | Profile       | Purpose                          |
 | -------------- | ---------------------- | ------------- | -------------------------------- |
-| db             | postgres:18-alpine     | default       | PostgreSQL database              |
+| db             | postgres:17-alpine     | default       | PostgreSQL database              |
 | redis          | redis:7-alpine         | default       | Cache / Celery broker            |
 | backend        | python:3.11-slim + uv  | default       | FastAPI application (migrates + seeds at entrypoint) |
 | frontend       | node:20-alpine         | default       | React / Vite dev server (5174)   |
 | bootstrap      | alpine:3.20            | default       | READY-banner sidecar, exits 0 after full stack is healthy |
 | celery-worker  | (same as backend)      | with-celery   | Async email/WhatsApp processing  |
+| celery-beat    | (same as backend)      | with-celery   | Follow-up automation scheduler   |
 | nginx          | nginx:alpine           | with-nginx    | Reverse proxy + SSL termination  |
 
 ---

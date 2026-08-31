@@ -36,7 +36,6 @@ export function LanguageSwitch({ className }: { className?: string }) {
         'inline-flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-xs font-semibold transition-colors',
         'border-amber-300/60 bg-white/70 text-amber-800 backdrop-blur-sm',
         'hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
-        'dark:border-violet-600/60 dark:bg-slate-800/70 dark:text-amber-300 dark:hover:bg-slate-800',
         className,
       )}
     >

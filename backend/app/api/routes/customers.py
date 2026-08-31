@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_practitioner
 from app.core.uploads import delete_upload, save_kundali, save_photo
 from app.db.database import get_session
 from app.models.customer import Customer
@@ -111,7 +111,7 @@ async def update_customer(
 async def delete_customer(
     customer_id: int,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_practitioner),
 ):
     result = await session.execute(select(Customer).where(Customer.id == customer_id))
     customer = result.scalar_one_or_none()

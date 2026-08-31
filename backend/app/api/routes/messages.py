@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_practitioner
 from app.db.database import get_session
 from app.models.customer import Customer
 from app.models.message_log import MessageLog, MessageStatus
@@ -23,7 +23,7 @@ from app.schemas.message import (
 
 logger = logging.getLogger("uvicorn.error")
 
-router = APIRouter(tags=["messages"])
+router = APIRouter(tags=["messages"], dependencies=[Depends(require_practitioner)])
 
 
 # Generic operator-facing text stored on the log when a provider rejects the send.

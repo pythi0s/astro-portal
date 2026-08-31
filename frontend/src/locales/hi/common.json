@@ -15,11 +15,8 @@
     "solutions": "समाधान",
     "messages": "संदेश",
     "templates": "टेम्प्लेट",
+    "automation": "ऑटोमेशन",
     "admin": "एडमिन"
-  },
-  "theme": {
-    "switchToLight": "लाइट थीम पर स्विच करें",
-    "switchToDark": "डार्क थीम पर स्विच करें"
   },
   "auth": {
     "login": "लॉग इन करें",

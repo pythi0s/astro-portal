@@ -2,6 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Button, LinkButton } from '@/components/Button';
+import { RoleGate } from '@/components/RoleGate';
 import { Tabs } from '@/components/Tabs';
 import { Skeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
@@ -85,14 +86,16 @@ export default function CustomerDetailPage() {
             <LinkButton href={`/customers/${data.id}/edit`} variant="primary">
               Edit
             </LinkButton>
-            <Button
-              variant="danger"
-              onClick={onDeactivate}
-              disabled={!data.is_active || deactivate.isPending}
-              disabledReason={!data.is_active ? 'Customer already deactivated' : undefined}
-            >
-              {deactivate.isPending ? 'Deactivating…' : 'Deactivate'}
-            </Button>
+            <RoleGate allow={['admin', 'astrologer']}>
+              <Button
+                variant="danger"
+                onClick={onDeactivate}
+                disabled={!data.is_active || deactivate.isPending}
+                disabledReason={!data.is_active ? 'Customer already deactivated' : undefined}
+              >
+                {deactivate.isPending ? 'Deactivating…' : 'Deactivate'}
+              </Button>
+            </RoleGate>
           </>
         }
       >

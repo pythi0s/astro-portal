@@ -69,6 +69,9 @@ def require_role(allowed_roles: Sequence[UserRole]):
     return role_checker
 
 
+require_practitioner = require_role((UserRole.admin, UserRole.astrologer))
+
+
 # ---------------------------------------------------------------------------
 # Login rate limiter
 # ---------------------------------------------------------------------------

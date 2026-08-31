@@ -11,7 +11,11 @@ RUN apt-get update \
 
 COPY pyproject.toml uv.lock ./
 
-RUN pip install uv && uv sync --frozen
+RUN pip install uv && uv sync --frozen --group worker
+
+# The image virtualenv is immutable. Prevent `uv run` in entrypoints from
+# re-syncing only default dependencies and removing the worker group.
+ENV UV_NO_SYNC=1
 
 COPY . .
 

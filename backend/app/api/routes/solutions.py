@@ -5,13 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_practitioner
 from app.db.database import get_session
 from app.models.solution import Solution, SolutionCategory
 from app.models.user import User
 from app.schemas.solution import SolutionCreate, SolutionRead, SolutionUpdate
 
-router = APIRouter(prefix="/solutions", tags=["solutions"])
+router = APIRouter(
+    prefix="/solutions", tags=["solutions"], dependencies=[Depends(require_practitioner)]
+)
 
 
 @router.post("/", response_model=SolutionRead)

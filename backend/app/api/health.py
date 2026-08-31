@@ -38,18 +38,18 @@ async def _db_ping() -> tuple[bool, float | None, str | None]:
 # Use this for Docker/k8s *liveness* probes (trigger restart on failure).
 
 @router.get("/health")
-async def health(deep: int = Query(0, ge=0, le=1)) -> dict[str, object]:
+async def health(response: Response, deep: int = Query(0, ge=0, le=1)) -> dict[str, object]:
     """Liveness probe. Pass ?deep=1 to also check DB (legacy bootstrap use)."""
     if not deep:
         return {"status": "ok"}
 
-    ok, latency_ms, err = await _db_ping()
+    ok, latency_ms, _ = await _db_ping()
     if not ok:
+        response.status_code = HTTPStatus.SERVICE_UNAVAILABLE
         return {
             "status": "unhealthy",
             "database": "disconnected",
             "error": "database connection failed",
-            "detail": err,
         }
     return {
         "status": "ok",
@@ -66,13 +66,12 @@ async def health(deep: int = Query(0, ge=0, le=1)) -> dict[str, object]:
 @router.get("/health/ready")
 async def readiness(response: Response) -> dict[str, object]:
     """Readiness probe. Use for load-balancer / Compose *readiness* checks."""
-    ok, latency_ms, err = await _db_ping()
+    ok, latency_ms, _ = await _db_ping()
     if not ok:
         response.status_code = HTTPStatus.SERVICE_UNAVAILABLE
         return {
             "status": "not_ready",
             "database": "disconnected",
-            "detail": err,
         }
     return {
         "status": "ready",
@@ -89,14 +88,14 @@ async def liveness() -> dict[str, str]:
 
 
 @router.get("/health/db")
-async def db_health() -> dict[str, object]:
-    ok, latency_ms, err = await _db_ping()
+async def db_health(response: Response) -> dict[str, object]:
+    ok, latency_ms, _ = await _db_ping()
     if not ok:
+        response.status_code = HTTPStatus.SERVICE_UNAVAILABLE
         return {
             "status": "unhealthy",
             "database": "disconnected",
             "error": "database connection failed",
-            "detail": err,
         }
     return {
         "status": "healthy",

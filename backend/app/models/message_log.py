@@ -2,6 +2,8 @@
 import enum
 from datetime import datetime
 
+from sqlalchemy import Column
+from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
 
@@ -38,7 +40,17 @@ class MessageLog(SQLModel, table=True):
     conversation_id: int | None = Field(
         default=None, foreign_key="messageconversation.id", index=True
     )
-    direction: MessageDirection = Field(default=MessageDirection.outbound, index=True)
+    schedule_id: int | None = Field(
+        default=None, foreign_key="messageschedule.id", index=True
+    )
+    automation_rule_id: int | None = Field(
+        default=None, foreign_key="automationrule.id", index=True
+    )
+    automation_event_key: str | None = Field(default=None, unique=True, index=True)
+    direction: MessageDirection = Field(
+        default=MessageDirection.outbound,
+        sa_column=Column(SAEnum(MessageDirection, native_enum=False), nullable=False, index=True),
+    )
     # Provider-side identifier (Twilio SID, SMTP message-id header value).
     #   Used to correlate delivery-status webhooks back to this log row.
     provider_message_id: str | None = Field(default=None, index=True)

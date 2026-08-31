@@ -10,13 +10,13 @@ def send_email_task(self, customer_id: int, template_id: int, visit_id: int | No
     """Send email asynchronously via Celery."""
     import asyncio
 
-    from app.db.database import async_session_factory
+    from app.db.database import async_session
     from app.models.customer import Customer
     from app.models.message_template import MessageTemplate
     from app.services.email import send_email as send_email_svc
 
     async def _send():
-        async with async_session_factory() as session:
+        async with async_session() as session:
             from sqlmodel import select
             customer = (
                 await session.execute(select(Customer).where(Customer.id == customer_id))
@@ -28,7 +28,7 @@ def send_email_task(self, customer_id: int, template_id: int, visit_id: int | No
             ).scalar_one_or_none()
             if not customer or not template:
                 return {"status": "error", "detail": "Customer or template not found"}
-            body = template.body_text
+            body = template.body
             placeholders = {
                 "name": customer.name,
                 "phone": customer.phone or "",
@@ -39,7 +39,7 @@ def send_email_task(self, customer_id: int, template_id: int, visit_id: int | No
             await send_email_svc(
                 to=customer.email,
                 subject=template.subject or "Notification",
-                body=body,
+                html_body=body,
             )
             return {"status": "sent"}
 
@@ -55,13 +55,13 @@ def send_whatsapp_task(self, customer_id: int, template_id: int, visit_id: int |
     """Send WhatsApp message asynchronously via Celery."""
     import asyncio
 
-    from app.db.database import async_session_factory
+    from app.db.database import async_session
     from app.models.customer import Customer
     from app.models.message_template import MessageTemplate
     from app.services.whatsapp import send_whatsapp
 
     async def _send():
-        async with async_session_factory() as session:
+        async with async_session() as session:
             from sqlmodel import select
             customer = (
                 await session.execute(select(Customer).where(Customer.id == customer_id))
@@ -73,7 +73,7 @@ def send_whatsapp_task(self, customer_id: int, template_id: int, visit_id: int |
             ).scalar_one_or_none()
             if not customer or not template:
                 return {"status": "error", "detail": "Customer or template not found"}
-            body = template.body_text
+            body = template.body
             placeholders = {
                 "name": customer.name,
                 "phone": customer.phone or "",

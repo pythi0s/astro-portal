@@ -120,32 +120,6 @@
 }
 
 /* ══════════════════════════════════════════
-   Dark mode — activated when <html class="dark">
-   Applies chrome-level overrides only.  Feature
-   pages retain their palette; broader dark theming
-   arrives in a follow-up substep.
-   ══════════════════════════════════════════ */
-html.dark {
-  color-scheme: dark;
-}
-
-html.dark body {
-  @apply text-slate-100;
-  background: radial-gradient(
-    ellipse at 30% 20%,
-    #1a1032 0%,
-    #10162b 40%,
-    #0b0f1f 70%,
-    #05070f 100%
-  );
-}
-
-html.dark .mandala-bg::before {
-  opacity: 0.35;
-  filter: invert(1) hue-rotate(180deg);
-}
-
-/* ══════════════════════════════════════════
    Sheet primitive — enter animations
    ══════════════════════════════════════════ */
 @keyframes sheet-fade {

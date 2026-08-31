@@ -4,11 +4,9 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { useAuth } from '@/auth/useAuth';
 import { RoleGate } from '@/components/RoleGate';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageSwitch } from '@/components/LanguageSwitch';
 import { Sheet } from '@/components/ui/Sheet';
 import { useConfirm } from '@/components/ConfirmProvider';
-import { humanizeEnum } from '@/lib/format';
 
 export function TopBar() {
   const { user, isAuthenticated, isBooting, logout } = useAuth();
@@ -58,7 +56,7 @@ export function TopBar() {
             type="button"
             onClick={() => setMobileNavOpen(true)}
             aria-label={t('app.openMenu')}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-amber-300/60 bg-white/70 text-amber-800 backdrop-blur-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:hidden dark:border-violet-600/60 dark:bg-slate-800/70 dark:text-amber-300 dark:hover:bg-slate-800"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-amber-300/60 bg-white/70 text-amber-800 backdrop-blur-sm hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 md:hidden"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -70,17 +68,19 @@ export function TopBar() {
             <NavItem to="/dashboard" label={t('nav.dashboard')} />
             <NavItem to="/customers" label={t('nav.customers')} />
             <NavItem to="/visits" label={t('nav.visits')} />
-            <NavItem to="/solutions" label={t('nav.solutions')} />
-            <NavItem to="/messages/send" label={t('nav.messages')} />
-            <NavItem to="/templates" label={t('nav.templates')} />
+            <RoleGate allow={['admin', 'astrologer']}>
+              <NavItem to="/solutions" label={t('nav.solutions')} />
+              <NavItem to="/messages/send" label={t('nav.messages')} />
+              <NavItem to="/templates" label={t('nav.templates')} />
+            </RoleGate>
             <RoleGate allow={['admin']}>
+              <NavItem to="/admin/automation" label={t('nav.automation')} />
               <NavItem to="/admin/users" label={t('nav.admin')} />
             </RoleGate>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">
           <LanguageSwitch />
-          <ThemeToggle />
           <Link
             to="/profile"
             title={displayName}
@@ -112,16 +112,22 @@ export function TopBar() {
         <nav
           aria-label="Primary mobile"
           className="flex flex-col gap-1 p-3 text-sm"
-          onClick={() => setMobileNavOpen(false)}
         >
-          <NavItem to="/dashboard" label={t('nav.dashboard')} />
-          <NavItem to="/customers" label={t('nav.customers')} />
-          <NavItem to="/visits" label={t('nav.visits')} />
-          <NavItem to="/solutions" label={t('nav.solutions')} />
-          <NavItem to="/messages/send" label={t('nav.messages')} />
-          <NavItem to="/templates" label={t('nav.templates')} />
+          <NavItem to="/dashboard" label={t('nav.dashboard')} onNavigate={() => setMobileNavOpen(false)} />
+          <NavItem to="/customers" label={t('nav.customers')} onNavigate={() => setMobileNavOpen(false)} />
+          <NavItem to="/visits" label={t('nav.visits')} onNavigate={() => setMobileNavOpen(false)} />
+          <RoleGate allow={['admin', 'astrologer']}>
+            <NavItem to="/solutions" label={t('nav.solutions')} onNavigate={() => setMobileNavOpen(false)} />
+            <NavItem to="/messages/send" label={t('nav.messages')} onNavigate={() => setMobileNavOpen(false)} />
+            <NavItem to="/templates" label={t('nav.templates')} onNavigate={() => setMobileNavOpen(false)} />
+          </RoleGate>
           <RoleGate allow={['admin']}>
-            <NavItem to="/admin/users" label={t('nav.admin')} />
+            <NavItem
+              to="/admin/automation"
+              label={t('nav.automation')}
+              onNavigate={() => setMobileNavOpen(false)}
+            />
+            <NavItem to="/admin/users" label={t('nav.admin')} onNavigate={() => setMobileNavOpen(false)} />
           </RoleGate>
         </nav>
       </Sheet>
@@ -129,10 +135,11 @@ export function TopBar() {
   );
 }
 
-function NavItem({ to, label }: { to: string; label: string }) {
+function NavItem({ to, label, onNavigate }: { to: string; label: string; onNavigate?: () => void }) {
   return (
     <NavLink
       to={to}
+      onClick={onNavigate}
       style={({ isActive }) => ({ color: isActive ? '#451a03' : '#78350f' })}
       className={({ isActive }) =>
         clsx(

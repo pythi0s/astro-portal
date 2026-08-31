@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_practitioner
 from app.db.database import get_session
 from app.models.customer_solution import CustomerSolution
 from app.models.solution import Solution
@@ -119,7 +119,7 @@ async def update_visit(
 async def delete_visit(
     visit_id: int,
     session: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_practitioner),
 ):
     """Soft-delete (Step 3: aligned with customers/solutions/templates). Use
     `?include_inactive=true` on GET /visits/ to see deactivated rows.
