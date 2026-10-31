@@ -48,7 +48,7 @@ export function Home() {
           {hasRole('admin') ? (
             <Link
               to="/admin/users"
-              className="rounded-md bg-midnight-900 px-4 py-2 text-sm font-medium text-white hover:bg-midnight-800"
+              className="rounded-md bg-midnight-900 px-4 py-2 text-sm font-medium text-midnight-50 hover:bg-midnight-800"
             >
               Manage users
             </Link>

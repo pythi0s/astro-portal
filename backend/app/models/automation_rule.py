@@ -20,6 +20,10 @@ class AutomationTrigger(enum.StrEnum):
     birthday = "birthday"
     # Beat task: customer.last_visit_at older than `filter.days` days.
     no_visit_days = "no_visit_days"
+    # Beat task: confirmation for portal bookings made after the rule existed.
+    appointment_booked = "appointment_booked"
+    # Beat task: `offset_hours` before a booked appointment starts.
+    appointment_reminder = "appointment_reminder"
 
 
 class AutomationRule(SQLModel, table=True):
@@ -36,6 +40,8 @@ class AutomationRule(SQLModel, table=True):
     # Number of days to offset the send from the trigger event
     # (0 = same day; +7 = seven days after; -1 = one day before).
     offset_days: int = Field(default=0)
+    # appointment_reminder only: how many hours before the start to remind.
+    offset_hours: int = Field(default=0)
     is_active: bool = Field(default=True, index=True)
     # Additional filter applied to the trigger's candidate set.
     #   Shape: {"rashi": "mesh", "gender": "F", "city": "Pune", ...}

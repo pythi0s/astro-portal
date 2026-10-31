@@ -26,6 +26,10 @@ export function PlaceholderPreview({
       customer_name: sampleName,
       customer_email: sampleEmail,
       customer_phone: samplePhone,
+      appointment_date: 'Thu, 10 Sep 2026',
+      appointment_time: '10:00 AM',
+      appointment_end_time: '10:30 AM',
+      appointment_duration: '30 minutes',
     }),
     [sampleName, sampleEmail, samplePhone],
   );

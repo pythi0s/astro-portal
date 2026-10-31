@@ -170,7 +170,7 @@ export default function CustomerListPage() {
                 onClick={() => setState({ active: opt, page: 1 })}
                 className={
                   state.active === opt
-                    ? 'rounded bg-midnight-900 px-2.5 py-1 text-white'
+                    ? 'rounded bg-midnight-900 px-2.5 py-1 text-midnight-50'
                     : 'rounded px-2.5 py-1 text-midnight-800 hover:bg-midnight-700/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
                 }
               >

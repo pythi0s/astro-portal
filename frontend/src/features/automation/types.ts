@@ -1,6 +1,15 @@
 import type { MessageChannel } from '@/features/templates/types';
 
-export type AutomationTrigger = 'follow_up_due';
+export type AutomationTrigger = 'follow_up_due' | 'appointment_booked' | 'appointment_reminder';
+
+export const TRIGGER_LABELS: Record<AutomationTrigger, string> = {
+  follow_up_due: 'Visit follow-up due',
+  appointment_booked: 'Appointment booked (confirmation)',
+  appointment_reminder: 'Before an appointment (reminder)',
+};
+
+export const isAppointmentTrigger = (t: AutomationTrigger) =>
+  t === 'appointment_booked' || t === 'appointment_reminder';
 export type AutomationRunStatus =
   | 'pending'
   | 'queued'
@@ -16,6 +25,7 @@ export interface AutomationRule {
   template_id: number;
   channel: MessageChannel;
   offset_days: number;
+  offset_hours: number;
   is_active: boolean;
   filter: Record<string, unknown> | null;
   timezone: string;

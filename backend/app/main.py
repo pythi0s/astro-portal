@@ -10,11 +10,13 @@ from fastapi.staticfiles import StaticFiles
 from app.api.health import router as health_router
 from app.api.routes import (
     admin,
+    appointments,
     auth,
     automation_rules,
     customers,
     dashboard,
     messages,
+    portal,
     solutions,
     timeline,
     visits,
@@ -90,6 +92,8 @@ app.include_router(messages.router)
 app.include_router(dashboard.router)
 app.include_router(automation_rules.router)
 app.include_router(admin.router)
+app.include_router(appointments.router)
+app.include_router(portal.router)
 
 
 @app.get("/")

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
@@ -10,6 +10,15 @@ import {
   useUploadPhoto,
 } from '@/features/customers/hooks/useCustomerMutations';
 import { customerKeys } from '@/features/customers/queryKeys';
+import { uploadKundali, uploadPhoto } from '@/features/customers/api';
+
+// jsdom's File cannot be streamed through MSW's XHR interceptor (the request hangs),
+// so the multipart transport is stubbed; the cache-merge logic under test is unchanged.
+vi.mock('@/features/customers/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/customers/api')>()),
+  uploadPhoto: vi.fn(),
+  uploadKundali: vi.fn(),
+}));
 import type {
   Customer,
   CustomerSolutionBrief,
@@ -145,7 +154,7 @@ describe('useUpdateCustomer cache merge', () => {
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
     server.use(
-      http.put('/customers/1', () =>
+      http.put('/api/customers/1', () =>
         HttpResponse.json(slimResponse(1, { name: 'Updated Name', city: 'Bengaluru' })),
       ),
     );
@@ -174,11 +183,7 @@ describe('useUploadPhoto cache merge', () => {
     const qc = freshClient();
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
-    server.use(
-      http.post('/customers/1/photo', () =>
-        HttpResponse.json(slimResponse(1, { photo_path: '/uploads/photos/x.jpg' })),
-      ),
-    );
+    vi.mocked(uploadPhoto).mockResolvedValue(slimResponse(1, { photo_path: '/uploads/photos/x.jpg' }));
 
     const { result } = renderHook(() => useUploadPhoto(1), { wrapper: makeWrapper(qc) });
 
@@ -202,15 +207,11 @@ describe('useUploadKundali cache merge', () => {
     const qc = freshClient();
     qc.setQueryData<Customer>(customerKeys.detail(1), seededDetail(1));
 
-    server.use(
-      http.post('/customers/1/kundali', () =>
-        HttpResponse.json(
-          slimResponse(1, {
+    vi.mocked(uploadKundali).mockResolvedValue(
+      slimResponse(1, {
             kundali_file_path: '/uploads/kundali/k.pdf',
             kundali_original_name: 'k.pdf',
           }),
-        ),
-      ),
     );
 
     const { result } = renderHook(() => useUploadKundali(1), { wrapper: makeWrapper(qc) });

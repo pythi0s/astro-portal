@@ -17,7 +17,7 @@ export const fakeAdminUser: User = {
 // one-or-two higher-level tests we ship. Tests that need to exercise other
 // endpoints should install their own handlers via `server.use(...)`.
 export const defaultHandlers = [
-  http.post('/auth/login', async ({ request }) => {
+  http.post('/api/auth/login', async ({ request }) => {
     const body = (await request.json()) as { email?: string; password?: string };
     if (body.email === fakeAdminUser.email && body.password === 'correct-horse-battery-staple') {
       return HttpResponse.json({ access_token: 'fake.jwt.token', token_type: 'bearer' });
@@ -28,9 +28,9 @@ export const defaultHandlers = [
     );
   }),
 
-  http.get('/auth/me', () => HttpResponse.json(fakeAdminUser)),
+  http.get('/api/auth/me', () => HttpResponse.json(fakeAdminUser)),
 
-  http.post('/auth/refresh', () =>
+  http.post('/api/auth/refresh', () =>
     HttpResponse.json({ access_token: 'fake.jwt.token', token_type: 'bearer' }),
   ),
 ];

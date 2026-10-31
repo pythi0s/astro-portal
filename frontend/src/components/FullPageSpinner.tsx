@@ -5,7 +5,7 @@ interface FullPageSpinnerProps {
 export function FullPageSpinner({ label = 'Loading' }: FullPageSpinnerProps) {
   return (
     <div
-      className="flex min-h-screen items-center justify-center bg-white"
+      className="flex min-h-screen items-center justify-center"
       role="status"
       aria-live="polite"
       aria-busy="true"

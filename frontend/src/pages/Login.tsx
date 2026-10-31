@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '@/auth/useAuth';
 import { FullPageSpinner } from '@/components/FullPageSpinner';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export function Login() {
   const { login, isAuthenticated, isBooting } = useAuth();
@@ -38,13 +40,8 @@ export function Login() {
   }
 
   return (
-    <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10"
-      style={{
-        background:
-          'radial-gradient(circle at 15% 10%, rgba(251,191,36,0.16) 0%, transparent 32%), radial-gradient(circle at 85% 90%, rgba(217,119,6,0.12) 0%, transparent 36%), linear-gradient(160deg, #fffef8 0%, #fef8df 45%, #fdecc2 100%)',
-      }}
-    >
+    <div className="login-surface relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <ThemeSwitcher className="absolute right-4 top-4 z-20" />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -72,7 +69,7 @@ export function Login() {
       </div>
 
 
-      <div aria-hidden="true" className="pointer-events-none absolute -left-28 top-4 opacity-28">
+      <div aria-hidden="true" className="pointer-events-none absolute -left-28 top-4 opacity-25">
         <svg width="320" height="320" viewBox="0 0 220 220" className="animate-[mandala-spin_90s_linear_infinite]">
           <g fill="none" stroke="#f5c56c" strokeWidth="0.9">
             <circle cx="110" cy="110" r="95" />
@@ -88,7 +85,7 @@ export function Login() {
         </svg>
       </div>
 
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -right-24 opacity-24">
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -right-24 opacity-25">
         <svg width="380" height="380" viewBox="0 0 260 260" className="animate-[mandala-spin_70s_linear_infinite_reverse]">
           <g fill="none" stroke="#f2bb5e" strokeWidth="0.8">
             <circle cx="130" cy="130" r="112" />
@@ -119,7 +116,7 @@ export function Login() {
         </svg>
       </div>
 
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-38">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40">
         {/* Twinkling stars */}
         {[
           { x: '8%', y: '18%', r: 2.2 }, { x: '14%', y: '66%', r: 1.7 }, { x: '24%', y: '34%', r: 2.6 },
@@ -168,12 +165,13 @@ export function Login() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="rounded-2xl border border-amber-200/80 bg-white/92 p-7 shadow-[0_22px_50px_rgba(146,64,14,0.18)] backdrop-blur-sm sm:p-8">
+        <div className="rounded-2xl border border-amber-200/80 bg-white/90 p-7 shadow-[0_22px_50px_rgba(146,64,14,0.18)] backdrop-blur-sm sm:p-8">
           <div className="mb-6 flex flex-col items-center text-center">
-            <img
-              src="/vynkatesh_pratishthan_logo.png"
+            <BrandLogo
+              size="lg"
+              priority
               alt="व्यंकटेश प्रतिष्ठाण"
-              className="h-48 w-auto object-contain drop-shadow-md sm:h-60"
+              className="h-48 w-auto drop-shadow-md sm:h-60"
             />
               <h1 className="mt-4 px-2 text-center text-3xl font-extrabold leading-[1.35] text-amber-900 sm:text-4xl">
               व्यंकटेश प्रतिष्ठाण
@@ -243,6 +241,12 @@ export function Login() {
               </button>
             </div>
           </form>
+          <p className="mt-6 border-t border-amber-200/70 pt-4 text-center text-sm text-amber-900">
+            Are you a customer?{' '}
+            <Link to="/portal/login" className="font-semibold text-amber-700 underline-offset-2 hover:underline">
+              Book an appointment
+            </Link>
+          </p>
         </div>
       </div>
     </div>

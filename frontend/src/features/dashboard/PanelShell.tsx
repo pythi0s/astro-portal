@@ -34,7 +34,7 @@ export function PanelShell({
   return (
     <section
       className={clsx(
-        'rounded-xl bg-white/70 backdrop-blur-sm p-4 ring-1 ring-gold-500/20 shadow-sm hover:shadow-md transition-shadow',
+        'rounded-xl bg-white/85 p-4 ring-1 ring-gold-500/20 shadow-sm hover:shadow-md transition-shadow',
         className,
       )}
     >

@@ -30,9 +30,17 @@
     height: 100%;
   }
 
+  :root {
+    color-scheme: light;
+  }
+  :root.dark {
+    color-scheme: dark;
+  }
+
   body {
     @apply antialiased text-midnight-900;
     background: radial-gradient(ellipse at 30% 20%, #f5f0ff 0%, #fff8e7 40%, #FFFBF5 70%, #ecfdf5 100%);
+    transition: background-color 200ms ease, color 200ms ease;
     min-height: 100vh;
     font-family:
       system-ui,
@@ -45,7 +53,30 @@
   }
 }
 
+@layer base {
+  .dark body {
+    background: radial-gradient(ellipse at 30% 15%, #2a1a45 0%, #1a1224 40%, #120d19 70%, #0d1512 100%);
+  }
+}
+
 @layer utilities {
+  /* Staff login backdrop (kept here so it can follow the theme). */
+  .login-surface {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(251, 191, 36, 0.16) 0%, transparent 32%),
+      radial-gradient(circle at 85% 90%, rgba(217, 119, 6, 0.12) 0%, transparent 36%),
+      linear-gradient(160deg, #fffef8 0%, #fef8df 45%, #fdecc2 100%);
+  }
+  .dark .login-surface {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(251, 191, 36, 0.14) 0%, transparent 34%),
+      radial-gradient(circle at 85% 90%, rgba(217, 119, 6, 0.12) 0%, transparent 38%),
+      linear-gradient(160deg, #1d1428 0%, #171021 45%, #120c19 100%);
+  }
+  .dark .mandala-bg::before {
+    filter: invert(1) hue-rotate(180deg) brightness(1.6);
+  }
+
   .mandala-bg {
     position: relative;
     isolation: isolate;

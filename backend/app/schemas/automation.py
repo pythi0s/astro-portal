@@ -17,6 +17,7 @@ class AutomationRuleCreate(BaseModel):
     template_id: int = Field(gt=0)
     channel: MessageChannel = MessageChannel.email
     offset_days: int = Field(default=0, ge=-365, le=365)
+    offset_hours: int = Field(default=0, ge=0, le=168)
     is_active: bool = True
     filter: dict[str, Any] | None = None
     timezone: str = "Asia/Kolkata"
@@ -54,6 +55,8 @@ class AutomationRuleCreate(BaseModel):
     def validate_rule(self) -> Self:
         if self.send_window_start_hour >= self.send_window_end_hour:
             raise ValueError("send window start must be before end")
+        if self.trigger == AutomationTrigger.appointment_reminder and self.offset_hours < 1:
+            raise ValueError("appointment reminders need offset_hours of at least 1")
 
         days = self.filter.get("days") if self.filter else None
         if self.trigger == AutomationTrigger.no_visit_days:
@@ -70,6 +73,7 @@ class AutomationRuleUpdate(BaseModel):
     template_id: int | None = Field(default=None, gt=0)
     channel: MessageChannel | None = None
     offset_days: int | None = Field(default=None, ge=-365, le=365)
+    offset_hours: int | None = Field(default=None, ge=0, le=168)
     is_active: bool | None = None
     filter: dict[str, Any] | None = None
     timezone: str | None = None

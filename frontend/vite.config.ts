@@ -39,6 +39,16 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       outDir: 'dist',
+      rollupOptions: {
+        output: {
+          // Long-lived vendor chunks: app deploys don't invalidate cached libraries.
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            query: ['@tanstack/react-query', '@tanstack/react-table', 'axios', 'zustand'],
+            charts: ['recharts'],
+          },
+        },
+      },
     },
   };
 });

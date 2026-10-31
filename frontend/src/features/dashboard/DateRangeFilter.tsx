@@ -50,7 +50,7 @@ export function DateRangeFilter({ value, onChange }: Props) {
                 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                 active
-                  ? 'bg-midnight-900 text-white'
+                  ? 'bg-midnight-900 text-midnight-50'
                   : 'bg-white text-midnight-800 ring-1 ring-midnight-900/10 hover:bg-midnight-900/5',
               )}
             >
@@ -65,7 +65,7 @@ export function DateRangeFilter({ value, onChange }: Props) {
           className={clsx(
             'cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium ring-1 ring-midnight-900/10',
             'hover:bg-midnight-900/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-            value.preset === 'custom' && 'bg-midnight-900 text-white ring-0',
+            value.preset === 'custom' && 'bg-midnight-900 text-midnight-50 ring-0',
           )}
           aria-controls={formId}
         >

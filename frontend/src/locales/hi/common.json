@@ -12,10 +12,11 @@
     "dashboard": "डैशबोर्ड",
     "customers": "ग्राहक",
     "visits": "मुलाकातें",
+    "appointments": "अपॉइंटमेंट",
     "solutions": "समाधान",
     "messages": "संदेश",
     "templates": "टेम्प्लेट",
-    "automation": "ऑटोमेशन",
+    "automation": "रिमाइंडर",
     "admin": "एडमिन"
   },
   "auth": {

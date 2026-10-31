@@ -12,10 +12,11 @@
     "dashboard": "Dashboard",
     "customers": "Customers",
     "visits": "Visits",
+    "appointments": "Appointments",
     "solutions": "Solutions",
     "messages": "Messages",
     "templates": "Templates",
-    "automation": "Automation",
+    "automation": "Reminders",
     "admin": "Admin"
   },
   "auth": {

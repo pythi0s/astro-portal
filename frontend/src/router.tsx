@@ -4,11 +4,11 @@ import { AppShell } from '@/AppShell';
 import { RequireAuth } from '@/auth/RequireAuth';
 import { RequireRole } from '@/auth/RequireRole';
 import { Login } from '@/pages/Login';
-import { Home } from '@/pages/Home';
 import { Forbidden } from '@/pages/Forbidden';
 import { NotFound } from '@/pages/NotFound';
-import { Dashboard } from '@/pages/Dashboard';
 import { Skeleton } from '@/components/Skeleton';
+import { PortalShell } from '@/portal/PortalShell';
+import { RequirePortalAuth } from '@/portal/RequirePortalAuth';
 
 type LazyModule = {
   default?: ComponentType;
@@ -45,6 +45,10 @@ function lazyRoute(factory: () => Promise<LazyModule>, exportName: string) {
     </Suspense>
   );
 }
+
+// Charts (recharts) are heavy; keep them out of the login/portal bundle.
+const Dashboard = lazyRoute(() => import('@/pages/Dashboard'), 'Dashboard');
+const Home = lazyRoute(() => import('@/pages/Home'), 'Home');
 
 const CustomerListPage = lazyRoute(
   () => import('@/features/customers/pages/CustomerListPage'),
@@ -140,7 +144,39 @@ const AutomationEditPage = lazyRoute(
   'AutomationEditPage',
 );
 
+const AppointmentListPage = lazyRoute(
+  () => import('@/features/appointments/pages/AppointmentListPage'),
+  'AppointmentListPage',
+);
+
+const PortalLogin = lazyRoute(() => import('@/portal/pages/PortalLogin'), 'PortalLogin');
+const PortalRegister = lazyRoute(() => import('@/portal/pages/PortalRegister'), 'PortalRegister');
+const PortalAppointments = lazyRoute(
+  () => import('@/portal/pages/PortalAppointments'),
+  'PortalAppointments',
+);
+const PortalBook = lazyRoute(() => import('@/portal/pages/PortalBook'), 'PortalBook');
+const PortalProfile = lazyRoute(() => import('@/portal/pages/PortalProfile'), 'PortalProfile');
+
 export const router = createBrowserRouter([
+  {
+    // Customer self-service app: own shell, own session, no staff chrome.
+    path: '/portal',
+    element: <PortalShell />,
+    children: [
+      { index: true, element: <Navigate to="/portal/appointments" replace /> },
+      { path: 'login', element: PortalLogin },
+      { path: 'register', element: PortalRegister },
+      {
+        element: <RequirePortalAuth />,
+        children: [
+          { path: 'appointments', element: PortalAppointments },
+          { path: 'book', element: PortalBook },
+          { path: 'profile', element: PortalProfile },
+        ],
+      },
+    ],
+  },
   {
     element: <AppShell />,
     children: [
@@ -150,8 +186,8 @@ export const router = createBrowserRouter([
         element: <RequireAuth />,
         children: [
           { path: '/', element: <Navigate to="/dashboard" replace /> },
-          { path: '/home', element: <Home /> },
-          { path: '/dashboard', element: <Dashboard /> },
+          { path: '/home', element: Home },
+          { path: '/dashboard', element: Dashboard },
           { path: '/profile', element: ProfilePage },
 
           { path: '/customers', element: CustomerListPage },
@@ -163,6 +199,8 @@ export const router = createBrowserRouter([
           { path: '/visits/new', element: VisitNewPage },
           { path: '/visits/:id', element: VisitDetailPage },
           { path: '/visits/:id/edit', element: VisitEditPage },
+
+          { path: '/appointments', element: AppointmentListPage },
 
           {
             element: <RequireRole allow={['admin', 'astrologer']} />,

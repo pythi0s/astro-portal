@@ -2,11 +2,14 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.models.appointment import Appointment, AppointmentStatus
 from app.models.automation_rule import AutomationRule, AutomationTrigger
 from app.models.customer import Customer
+from app.models.customer_account import CustomerAccount
 from app.models.message_log import MessageLog, MessageStatus
 from app.models.message_schedule import MessageSchedule, ScheduleStatus
 from app.models.message_template import MessageChannel, MessageTemplate
@@ -15,7 +18,7 @@ from app.models.visit import Visit
 EnqueueDelivery = Callable[[int, MessageChannel], None]
 
 
-def _render_template(text: str, customer: Customer) -> str:
+def _render_template(text: str, customer: Customer, extra: dict[str, str] | None = None) -> str:
     values = {
         "customer_name": customer.name,
         "customer_email": customer.email or "",
@@ -23,6 +26,7 @@ def _render_template(text: str, customer: Customer) -> str:
         "name": customer.name,
         "email": customer.email or "",
         "phone": customer.phone or "",
+        **(extra or {}),
     }
     for key, value in values.items():
         text = text.replace("{{" + key + "}}", value)
@@ -174,6 +178,183 @@ async def execute_due_follow_up_rules(
         schedule.status = ScheduleStatus.failed if failed == len(logs) and logs else (
             ScheduleStatus.queued if logs else ScheduleStatus.completed
         )
+        schedule.updated_at = datetime.utcnow()
+        await session.commit()
+
+    return summary
+
+
+APPOINTMENT_TRIGGERS = (
+    AutomationTrigger.appointment_booked,
+    AutomationTrigger.appointment_reminder,
+)
+# Never confirm bookings older than this, even for a freshly created rule.
+_BOOKED_LOOKBACK = timedelta(days=2)
+
+
+def _clock_label(value: datetime) -> str:
+    return value.strftime("%I:%M %p").lstrip("0")
+
+
+def appointment_placeholders(appointment: Appointment) -> dict[str, str]:
+    minutes = appointment.duration_minutes
+    return {
+        "appointment_date": appointment.start_at.strftime("%a, %d %b %Y"),
+        "appointment_time": _clock_label(appointment.start_at),
+        "appointment_end_time": _clock_label(appointment.end_at),
+        "appointment_duration": "1 hour" if minutes == 60 else f"{minutes} minutes",
+    }
+
+
+async def execute_appointment_rules(
+    session: AsyncSession,
+    enqueue: EnqueueDelivery,
+    *,
+    now: datetime | None = None,
+) -> dict[str, int]:
+    """Send booking confirmations and pre-appointment reminders.
+
+    Each (rule, appointment) pair is messaged at most once, enforced by the
+    unique `MessageLog.automation_event_key`. Send windows are ignored because
+    the timing is dictated by the appointment itself.
+    """
+    current = now or datetime.now(UTC)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=UTC)
+    now_utc = current.astimezone(UTC).replace(tzinfo=None)
+
+    rules_result = await session.execute(
+        select(AutomationRule).where(
+            AutomationRule.is_active == True,  # noqa: E712
+            AutomationRule.trigger.in_(APPOINTMENT_TRIGGERS),
+        )
+    )
+    summary = {"rules_scanned": 0, "schedules_created": 0, "messages_queued": 0}
+
+    for rule in rules_result.scalars().all():
+        if rule.id is None:
+            continue
+        summary["rules_scanned"] += 1
+        template = (
+            await session.execute(
+                select(MessageTemplate).where(
+                    MessageTemplate.id == rule.template_id,
+                    MessageTemplate.is_active == True,  # noqa: E712
+                    MessageTemplate.channel == rule.channel,
+                )
+            )
+        ).scalar_one_or_none()
+        if template is None:
+            continue
+
+        tz = ZoneInfo(rule.timezone)
+        now_local = current.astimezone(tz).replace(tzinfo=None)
+
+        def to_utc(local: datetime, _tz: ZoneInfo = tz) -> datetime:
+            return local.replace(tzinfo=_tz).astimezone(UTC).replace(tzinfo=None)
+
+        candidates = (
+            select(Appointment, Customer)
+            .join(Customer, Customer.id == Appointment.customer_id)
+            .outerjoin(CustomerAccount, CustomerAccount.customer_id == Customer.id)
+            .where(
+                Appointment.status == AppointmentStatus.booked,
+                Appointment.start_at > now_local,
+                Customer.is_active == True,  # noqa: E712
+                or_(CustomerAccount.id.is_(None), CustomerAccount.reminders_opt_in == True),  # noqa: E712
+            )
+        )
+        if rule.trigger == AutomationTrigger.appointment_booked:
+            candidates = candidates.where(
+                Appointment.created_at >= max(rule.created_at, now_utc - _BOOKED_LOOKBACK)
+            )
+        else:
+            candidates = candidates.where(
+                Appointment.start_at <= now_local + timedelta(hours=rule.offset_hours)
+            )
+        candidates = _apply_customer_filters(candidates, rule.filter)
+        if rule.channel == MessageChannel.email:
+            candidates = candidates.where(Customer.email.is_not(None), Customer.email != "")
+        else:
+            candidates = candidates.where(Customer.phone.is_not(None), Customer.phone != "")
+
+        rows = (await session.execute(candidates.order_by(Appointment.start_at))).all()
+        if rule.trigger == AutomationTrigger.appointment_reminder:
+            # Booked after the reminder moment: the confirmation already covers it.
+            rows = [
+                (a, c)
+                for a, c in rows
+                if a.created_at <= to_utc(a.start_at - timedelta(hours=rule.offset_hours))
+            ]
+        keys = {
+            a.id: f"{rule.trigger.value}:{rule.id}:appointment:{a.id}" for a, _ in rows
+        }
+        if keys:
+            sent = await session.execute(
+                select(MessageLog.automation_event_key).where(
+                    MessageLog.automation_event_key.in_(list(keys.values()))
+                )
+            )
+            already = set(sent.scalars().all())
+            rows = [(a, c) for a, c in rows if keys[a.id] not in already]
+        if not rows:
+            continue
+
+        schedule = MessageSchedule(
+            template_id=template.id,
+            automation_rule_id=rule.id,
+            event_key=f"{rule.trigger.value}:{rule.id}:{now_utc:%Y%m%dT%H%M%S%f}",
+            channel=rule.channel,
+            target_query={
+                "trigger": rule.trigger.value,
+                "appointment_ids": [a.id for a, _ in rows],
+            },
+            scheduled_for=now_utc,
+            timezone=rule.timezone,
+            status=ScheduleStatus.pending,
+            total_count=len(rows),
+        )
+        session.add(schedule)
+        await session.flush()
+
+        logs: list[MessageLog] = []
+        for appointment, customer in rows:
+            extra = appointment_placeholders(appointment)
+            log = MessageLog(
+                customer_id=customer.id,
+                template_id=template.id,
+                schedule_id=schedule.id,
+                automation_rule_id=rule.id,
+                automation_event_key=keys[appointment.id],
+                channel=rule.channel.value,
+                recipient=(
+                    customer.email if rule.channel == MessageChannel.email else customer.phone
+                ),
+                subject=(
+                    _render_template(template.subject or "Appointment update", customer, extra)
+                    if rule.channel == MessageChannel.email
+                    else None
+                ),
+                body_snapshot=_render_template(template.body, customer, extra),
+                status=MessageStatus.queued,
+            )
+            session.add(log)
+            logs.append(log)
+        await session.commit()
+        summary["schedules_created"] += 1
+
+        failed = 0
+        for log in logs:
+            try:
+                enqueue(log.id, rule.channel)  # type: ignore[arg-type]
+            except Exception:
+                log.status = MessageStatus.failed
+                log.error_message = "Could not enqueue message delivery."
+                failed += 1
+            else:
+                summary["messages_queued"] += 1
+        schedule.failed_count = failed
+        schedule.status = ScheduleStatus.failed if failed == len(logs) else ScheduleStatus.queued
         schedule.updated_at = datetime.utcnow()
         await session.commit()
 

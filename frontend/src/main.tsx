@@ -10,6 +10,9 @@ import { ConfirmProvider } from '@/components/ConfirmProvider';
 import '@/i18n';
 import '@/api/auth';
 import '@/index.css';
+import { initTheme } from '@/lib/theme';
+
+initTheme();
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {

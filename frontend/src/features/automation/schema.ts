@@ -3,10 +3,11 @@ import { z } from 'zod';
 export const automationRuleSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(120),
-    trigger: z.literal('follow_up_due'),
+    trigger: z.enum(['follow_up_due', 'appointment_booked', 'appointment_reminder']),
     template_id: z.number().int().positive('Select a template'),
     channel: z.enum(['email', 'whatsapp']),
     offset_days: z.number().int().min(-365).max(365),
+    offset_hours: z.number({ invalid_type_error: 'Enter a number of hours' }).int().min(0).max(168),
     timezone: z.literal('Asia/Kolkata'),
     send_window_start_hour: z.number().int().min(0).max(23),
     send_window_end_hour: z.number().int().min(0).max(23),
@@ -15,6 +16,13 @@ export const automationRuleSchema = z
     is_active: z.boolean(),
   })
   .superRefine((values, context) => {
+    if (values.trigger === 'appointment_reminder' && values.offset_hours < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['offset_hours'],
+        message: 'Remind at least 1 hour before',
+      });
+    }
     if (values.send_window_start_hour >= values.send_window_end_hour) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -32,6 +40,7 @@ export const emptyAutomationRule: AutomationRuleFormValues = {
   template_id: 0,
   channel: 'email',
   offset_days: -1,
+  offset_hours: 24,
   timezone: 'Asia/Kolkata',
   send_window_start_hour: 9,
   send_window_end_hour: 18,
@@ -51,7 +60,8 @@ export function toAutomationRulePayload(
     trigger: values.trigger,
     template_id: values.template_id,
     channel: values.channel,
-    offset_days: values.offset_days,
+    offset_days: values.trigger === 'follow_up_due' ? values.offset_days : 0,
+    offset_hours: values.trigger === 'appointment_reminder' ? values.offset_hours : 0,
     timezone: values.timezone,
     send_window_start_hour: values.send_window_start_hour,
     send_window_end_hour: values.send_window_end_hour,

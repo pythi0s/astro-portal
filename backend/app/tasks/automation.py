@@ -3,7 +3,7 @@ import logging
 
 from app.db.database import async_session
 from app.models.message_template import MessageChannel
-from app.services.automation import execute_due_follow_up_rules
+from app.services.automation import execute_appointment_rules, execute_due_follow_up_rules
 from app.services.message_delivery import deliver_logged_message
 from app.tasks.celery_app import celery_app
 
@@ -45,4 +45,19 @@ def scan_due_follow_ups():
         logger.exception("due follow-up automation scan failed")
         raise
     logger.info("due follow-up automation scan complete: %s", summary)
+    return summary
+
+
+@celery_app.task(name="automation.scan_appointments", ignore_result=True)
+def scan_appointments():
+    async def run() -> dict[str, int]:
+        async with async_session() as session:
+            return await execute_appointment_rules(session, _enqueue_delivery)
+
+    try:
+        summary = asyncio.run(run())
+    except Exception:
+        logger.exception("appointment automation scan failed")
+        raise
+    logger.info("appointment automation scan complete: %s", summary)
     return summary

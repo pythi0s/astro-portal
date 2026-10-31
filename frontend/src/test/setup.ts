@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { useAuthStore } from '@/stores/auth';
+import { usePortalAuthStore } from '@/portal/store';
 import { server } from './msw';
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,7 @@ beforeEach(() => {
   // state. The real app starts with `isBooting: true` and the AuthProvider
   // flips it to false after /auth/me; tests usually don't want that ceremony.
   useAuthStore.setState({ token: null, user: null, isBooting: false });
+  usePortalAuthStore.setState({ token: null, account: null, isBooting: false });
 });
 
 afterEach(() => {

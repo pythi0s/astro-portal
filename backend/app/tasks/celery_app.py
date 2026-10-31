@@ -22,6 +22,11 @@ celery_app.conf.update(
         "scan-due-follow-ups-every-15-minutes": {
             "task": "automation.scan_due_follow_ups",
             "schedule": 900.0,
-        }
+        },
+        # Confirmations should feel prompt; reminders are idempotent per appointment.
+        "scan-appointments-every-2-minutes": {
+            "task": "automation.scan_appointments",
+            "schedule": 120.0,
+        },
     },
 )

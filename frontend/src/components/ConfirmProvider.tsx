@@ -75,17 +75,20 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       {children}
       {active ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-midnight-900/40 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-title"
-          aria-describedby={active.description ? 'confirm-desc' : undefined}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-deep-900/50 px-4 backdrop-blur-[2px]"
+          role="presentation"
           ref={dialogRef}
           onClick={(e) => {
             if (e.target === dialogRef.current) respond(false);
           }}
         >
-          <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-lg">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            aria-describedby={active.description ? 'confirm-desc' : undefined}
+            className="w-full max-w-md rounded-xl border border-amber-200/80 bg-white p-5 shadow-[0_22px_50px_rgba(146,64,14,0.18)]"
+          >
             <h2 id="confirm-title" className="text-base font-semibold text-midnight-900">
               {active.title}
             </h2>

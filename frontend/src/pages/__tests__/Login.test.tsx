@@ -57,7 +57,7 @@ describe('<Login />', () => {
 
     // Never-resolving handler so we can observe the in-flight state.
     server.use(
-      http.post('/auth/login', async () => {
+      http.post('/api/auth/login', async () => {
         await new Promise((r) => setTimeout(r, 10_000));
         return HttpResponse.json({ access_token: 't', token_type: 'bearer' });
       }),

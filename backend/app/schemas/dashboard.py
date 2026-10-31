@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel
@@ -70,3 +70,51 @@ class RevenueByCategory(BaseModel):
     rows: list[CategoryRevenueRow]
     grand_total: Decimal
     unassigned_bucket_label: str | None = "__unassigned__"
+
+
+class OverviewAppointment(BaseModel):
+    id: int
+    customer_id: int
+    customer_name: str
+    start_at: datetime
+    end_at: datetime
+    duration_minutes: int
+
+
+class OverviewCustomer(BaseModel):
+    id: int
+    name: str
+    phone: str | None = None
+    created_at: datetime
+    self_registered: bool
+
+
+class OverviewFollowUp(BaseModel):
+    visit_id: int
+    customer_id: int
+    customer_name: str
+    customer_phone: str | None = None
+    follow_up_date: date
+
+
+class DailyAmount(BaseModel):
+    day: date
+    amount: Decimal
+
+
+class DashboardOverview(BaseModel):
+    today: date
+    appointments_today: int
+    remaining_today: int
+    next_appointment: OverviewAppointment | None = None
+    upcoming_7_days: int
+    appointments_this_month: int
+    appointments_total: int
+    collected_this_month: Decimal
+    collected_last_month: Decimal
+    collected_change_pct: float | None = None
+    collected_daily: list[DailyAmount]
+    outstanding_total: Decimal
+    new_customers_this_month: int
+    recent_customers: list[OverviewCustomer]
+    follow_ups_due: list[OverviewFollowUp]

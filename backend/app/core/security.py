@@ -13,9 +13,11 @@ from sqlmodel import select
 
 from app.core.config import settings
 from app.db.database import get_session
+from app.models.customer_account import CustomerAccount
 from app.models.user import User, UserRole
 
 ALGORITHM = "HS256"
+CUSTOMER_TOKEN_TYPE = "customer"
 
 security_scheme = HTTPBearer()
 
@@ -25,6 +27,23 @@ def create_access_token(data: dict) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
+
+
+def create_customer_token(account_id: int) -> str:
+    return create_access_token({"sub": str(account_id), "typ": CUSTOMER_TOKEN_TYPE})
+
+
+def _decode_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        ) from exc
+    if payload.get("sub") is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return payload
 
 
 def hash_password(password: str) -> str:
@@ -39,23 +58,33 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    except JWTError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        ) from exc
+    payload = _decode_token(credentials.credentials)
+    # Customer-portal tokens share the signing key; they must never act as staff.
+    if payload.get("typ") == CUSTOMER_TOKEN_TYPE:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    result = await session.execute(select(User).where(User.id == int(user_id)))
+    result = await session.execute(select(User).where(User.id == int(payload["sub"])))
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
+
+
+async def get_current_customer(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    session: AsyncSession = Depends(get_session),
+) -> CustomerAccount:
+    payload = _decode_token(credentials.credentials)
+    if payload.get("typ") != CUSTOMER_TOKEN_TYPE:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    result = await session.execute(
+        select(CustomerAccount).where(CustomerAccount.id == int(payload["sub"]))
+    )
+    account = result.scalar_one_or_none()
+    if account is None or not account.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account not found")
+    return account
 
 
 def require_role(allowed_roles: Sequence[UserRole]):

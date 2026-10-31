@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server, fakeAdminUser } from '@/test/msw';
+import { fakeOverview } from '@/test/fakeBackend';
 import { renderWithProviders } from '@/test/renderWithProviders';
 import { Dashboard } from '@/pages/Dashboard';
 import { useAuthStore } from '@/stores/auth';
@@ -56,10 +57,12 @@ function installDashboardHandlers() {
     // Returning the same payload for both calls keeps the assertions on the
     // current-window numbers deterministic; delta KPIs will be 0% but the
     // test does not assert on them.
-    http.get('/dashboard/revenue', () => HttpResponse.json(sampleRevenue)),
-    http.get('/dashboard/earnings', () => HttpResponse.json(emptyEarnings)),
-    http.get('/dashboard/revenue-by-category', () => HttpResponse.json(emptyCategories)),
-    http.get('/visits/', () => HttpResponse.json(emptyVisits)),
+    http.get('/api/dashboard/revenue', () => HttpResponse.json(sampleRevenue)),
+    http.get('/api/dashboard/earnings', () => HttpResponse.json(emptyEarnings)),
+    http.get('/api/dashboard/revenue-by-category', () => HttpResponse.json(emptyCategories)),
+    http.get('/api/visits/', () => HttpResponse.json(emptyVisits)),
+    http.get('/api/dashboard/overview', () => HttpResponse.json(fakeOverview)),
+    http.get('/api/appointments/', () => HttpResponse.json([])),
   );
 }
 
@@ -123,5 +126,40 @@ describe('<Dashboard />', () => {
     // the page mounts and get a trivially-true result.
     await screen.findByRole('list', { name: /key revenue indicators/i });
     expect(screen.queryByText(/staff collection rate/i)).not.toBeInTheDocument();
+  });
+
+  it('greets the user and shows today-at-a-glance cards from /dashboard/overview', async () => {
+    useAuthStore.setState({ token: 'fake.jwt.token', user: fakeAdminUser, isBooting: false });
+    installDashboardHandlers();
+    renderWithProviders(<Dashboard />, { route: '/dashboard' });
+
+    expect(screen.getByRole('heading', { level: 1, name: /good (morning|afternoon|evening), admin/i })).toBeInTheDocument();
+    const cards = await screen.findByRole('list', { name: /today at a glance/i });
+    const items = within(cards).getAllByRole('listitem').filter((li) => li.parentElement === cards);
+    expect(items).toHaveLength(4);
+
+    expect(within(items[0] as HTMLElement).getByText('02')).toBeInTheDocument();
+    expect(within(items[0] as HTMLElement).getByText(/2:00 PM/)).toBeInTheDocument();
+    expect(within(items[0] as HTMLElement).getByText(/aarav sharma/i)).toBeInTheDocument();
+    expect(within(items[1] as HTMLElement).getByText('5')).toBeInTheDocument();
+    expect(within(items[2] as HTMLElement).getByText('+25%')).toBeInTheDocument();
+    expect(within(items[3] as HTMLElement).getByText('Portal')).toBeInTheDocument();
+    expect(within(items[3] as HTMLElement).getByText('3')).toBeInTheDocument();
+  });
+
+  it('shows the scheduled-appointments calendar, follow-ups and recent customers', async () => {
+    useAuthStore.setState({ token: 'fake.jwt.token', user: fakeAdminUser, isBooting: false });
+    installDashboardHandlers();
+    renderWithProviders(<Dashboard />, { route: '/dashboard' });
+
+    const scheduled = await screen.findByRole('region', { name: /scheduled appointments/i });
+    expect(within(scheduled).getByRole('radiogroup', { name: /calendar view/i })).toBeInTheDocument();
+    expect(within(scheduled).getByRole('searchbox', { name: /search appointments/i })).toBeInTheDocument();
+    expect(within(scheduled).getByRole('button', { name: /previous month/i })).toBeInTheDocument();
+    expect(await within(scheduled).findByText('5 in the next 7 days')).toBeInTheDocument();
+
+    expect(await screen.findByText(/1d overdue/i)).toBeInTheDocument();
+    expect(screen.getByText(/recently added customers/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Revenue' })).toBeInTheDocument();
   });
 });

@@ -26,4 +26,8 @@ export const TEMPLATE_PLACEHOLDERS: readonly string[] = [
   '{{customer_name}}',
   '{{customer_email}}',
   '{{customer_phone}}',
+  '{{appointment_date}}',
+  '{{appointment_time}}',
+  '{{appointment_end_time}}',
+  '{{appointment_duration}}',
 ] as const;

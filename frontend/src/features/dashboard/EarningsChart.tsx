@@ -84,9 +84,9 @@ export function EarningsChart({
         <ResponsiveContainer width="100%" height="100%">
           {kind === 'bar' ? (
             <BarChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={(v) => formatMoney(v, { currency: undefined })} tick={{ fontSize: 12 }} width={80} />
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.12} />
+              <XAxis dataKey="label" tick={{ fontSize: 12, fill: 'currentColor' }} />
+              <YAxis tickFormatter={(v) => formatMoney(v, { currency: undefined })} tick={{ fontSize: 12, fill: 'currentColor' }} width={80} />
               <Tooltip
                 formatter={(v: number) => [formatMoney(v), 'Total']}
                 labelClassName="font-medium"
@@ -95,9 +95,9 @@ export function EarningsChart({
             </BarChart>
           ) : (
             <LineChart data={series} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#00000010" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis tickFormatter={(v) => formatMoney(v, { currency: undefined })} tick={{ fontSize: 12 }} width={80} />
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.12} />
+              <XAxis dataKey="label" tick={{ fontSize: 12, fill: 'currentColor' }} />
+              <YAxis tickFormatter={(v) => formatMoney(v, { currency: undefined })} tick={{ fontSize: 12, fill: 'currentColor' }} width={80} />
               <Tooltip
                 formatter={(v: number) => [formatMoney(v), 'Total']}
                 labelClassName="font-medium"
@@ -134,7 +134,7 @@ function ToggleGroup<T extends string>({
             'px-2.5 py-1 text-xs font-medium capitalize',
             i === 0 && 'rounded-l-md',
             i === options.length - 1 && 'rounded-r-md',
-            value === opt ? 'bg-midnight-900 text-white' : 'bg-white text-midnight-800 hover:bg-midnight-900/5',
+            value === opt ? 'bg-midnight-900 text-midnight-50' : 'bg-white text-midnight-800 hover:bg-midnight-900/5',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
           )}
         >

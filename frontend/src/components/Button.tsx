@@ -1,4 +1,5 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { Link } from 'react-router-dom';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/cn';
 
@@ -27,8 +28,8 @@ const buttonVariants = cva(
         ),
         secondary: cn(
           'btn-glass relative overflow-hidden',
-          'border border-violet-200 bg-white/70 backdrop-blur-sm text-violet-800',
-          'hover:bg-violet-50 focus-visible:ring-violet-400',
+          'border border-amber-300 bg-white font-semibold text-amber-900 shadow-sm',
+          'hover:border-amber-400 hover:bg-amber-50 focus-visible:ring-amber-400',
         ),
         ghost: 'text-midnight-800 hover:bg-midnight-700/5 focus-visible:ring-primary-500',
         danger: cn(
@@ -90,8 +91,8 @@ export function LinkButton({
   className?: string;
 }) {
   return (
-    <a href={href} className={cn(buttonVariants({ variant, size }), className)}>
+    <Link to={href} className={cn(buttonVariants({ variant, size }), className)}>
       {children}
-    </a>
+    </Link>
   );
 }

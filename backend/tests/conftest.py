@@ -25,12 +25,16 @@ from collections.abc import AsyncIterator  # noqa: E402
 
 import pytest_asyncio  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
+from sqlalchemy.ext.asyncio import (  # noqa: E402
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import StaticPool  # noqa: E402
 from sqlmodel import SQLModel  # noqa: E402
 
 import app.models  # noqa: F401, E402  — register every SQLModel with the shared metadata
-from app.core.security import get_current_user  # noqa: E402
+from app.core.security import get_current_user, hash_password, login_rate_limiter  # noqa: E402
 from app.db.database import get_session  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.user import User, UserRole  # noqa: E402
@@ -102,3 +106,46 @@ async def client(session_factory, test_user) -> AsyncIterator[AsyncClient]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _reset_rate_limiter():
+    """The limiter is process-global; keep failed attempts from leaking across tests."""
+    login_rate_limiter._buckets.clear()
+    yield
+    login_rate_limiter._buckets.clear()
+
+
+@pytest_asyncio.fixture
+async def raw_client(session_factory) -> AsyncIterator[AsyncClient]:
+    """ASGI client with only the DB overridden — real JWT auth is exercised."""
+
+    async def override_get_session() -> AsyncIterator[AsyncSession]:
+        async with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_session] = override_get_session
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def staff_factory(session_factory):
+    """Persist a staff user with a real password hash; returns (user, password)."""
+
+    async def _make(email: str, role: UserRole = UserRole.admin, password: str = "staff-pass-123"):
+        async with session_factory() as session:
+            user = User(
+                email=email,
+                hashed_password=hash_password(password),
+                full_name=email.split("@")[0],
+                role=role,
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            return user, password
+
+    return _make

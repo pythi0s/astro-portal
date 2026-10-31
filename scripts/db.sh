@@ -10,6 +10,14 @@ BACKEND_SERVICE="backend"
 DB_USER="crm_user"
 DB_NAME="crm_database"
 BACKUP_DIR="./backups"
+UPLOADS_PATH="/workspace/uploads"
+
+# Customer photos and kundali files live in the `uploads` volume, not the DB.
+backup_uploads() {
+  local target="${BACKUP_DIR}/uploads_$1.tar.gz"
+  $COMPOSE exec -T $BACKEND_SERVICE tar -czf - -C "$UPLOADS_PATH" . > "$target"
+  echo "Uploads archived: ${target} ($(du -sh "$target" | cut -f1))"
+}
 
 case "$CMD" in
 
@@ -68,6 +76,7 @@ case "$CMD" in
       pg_dump -U $DB_USER -d $DB_NAME --clean --if-exists | gzip > "$BACKUP_FILE"
     echo "Backup saved: ${BACKUP_FILE}"
     ls -lh "$BACKUP_FILE"
+    backup_uploads "$TIMESTAMP"
     ;;
 
   restore)
@@ -178,7 +187,9 @@ case "$CMD" in
     SIZE=$(du -sh "$BACKUP_FILE" | cut -f1)
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Backup complete: ${BACKUP_FILE} (${SIZE})"
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Pruning backups older than ${RETENTION_DAYS} days ..."
+    backup_uploads "$TIMESTAMP"
     find "$BACKUP_DIR" -name "backup_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+    find "$BACKUP_DIR" -name "uploads_*.tar.gz" -mtime +${RETENTION_DAYS} -delete
     REMAINING=$(ls "$BACKUP_DIR"/backup_*.sql.gz 2>/dev/null | wc -l)
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Retained ${REMAINING} backup file(s)."
     ;;
@@ -198,6 +209,29 @@ case "$CMD" in
 ")
     $COMPOSE exec -T $DB_SERVICE psql -U $DB_USER -c "DROP DATABASE ${TEMP_DB};" postgres
     echo "Restore verification passed. Users in backup: ${ROWS}"
+    LATEST_UPLOADS=$(ls -t "$BACKUP_DIR"/uploads_*.tar.gz 2>/dev/null | head -1)
+    if [ -n "$LATEST_UPLOADS" ]; then
+      FILES=$(tar -tzf "$LATEST_UPLOADS" | grep -vc '/$' || true)
+      echo "Uploads archive OK: ${LATEST_UPLOADS} (${FILES} files)"
+    else
+      echo "WARNING: no uploads archive found in $BACKUP_DIR"
+    fi
+    ;;
+
+  restore-uploads)
+    if [ -z "$MSG" ] || [ ! -f "$MSG" ]; then
+      echo "Usage: ./scripts/db.sh restore-uploads <uploads_*.tar.gz>"
+      ls -lh "$BACKUP_DIR"/uploads_*.tar.gz 2>/dev/null || echo "  No uploads archives found."
+      exit 1
+    fi
+    echo "WARNING: This will overwrite files in the uploads volume!"
+    read -p "Continue? (y/N): " CONFIRM
+    if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
+      echo "Cancelled."
+      exit 0
+    fi
+    $COMPOSE exec -T $BACKEND_SERVICE tar -xzf - -C "$UPLOADS_PATH" < "$MSG"
+    echo "Uploads restored from ${MSG}"
     ;;
 
   *)
@@ -218,10 +252,11 @@ case "$CMD" in
     echo "  ./scripts/db.sh init                    Legacy first-time setup (no longer required)"
     echo ""
     echo "Backup & Restore:"
-    echo "  ./scripts/db.sh backup                  Backup database (gzipped)"
+    echo "  ./scripts/db.sh backup                  Backup database + uploaded files"
   echo "  ./scripts/db.sh auto-backup             Backup + prune old backups (cron-safe)"
   echo "  ./scripts/db.sh verify-backup           Restore latest backup to temp DB and verify"
-    echo "  ./scripts/db.sh restore <file>          Restore from backup"
+    echo "  ./scripts/db.sh restore <file>          Restore database from backup"
+    echo "  ./scripts/db.sh restore-uploads <file>  Restore uploaded files from archive"
     echo "  ./scripts/db.sh reset                   Drop & recreate database (destructive!)"
     echo ""
     echo "Debug & Inspect:"

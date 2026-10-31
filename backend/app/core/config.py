@@ -59,6 +59,14 @@ class Settings(BaseSettings):
 
     upload_dir: str = "/workspace/uploads"
 
+    # Customer portal appointment booking. Times are wall-clock in this timezone.
+    appointment_timezone: str = "Asia/Kolkata"
+    appointment_open_time: str = "09:00"
+    appointment_close_time: str = "19:00"
+    appointment_min_minutes: int = 15
+    appointment_max_minutes: int = 60
+    appointment_slot_step_minutes: int = 15
+
     @model_validator(mode="after")
     def reject_credentialed_wildcard_cors(self) -> Self:
         if self.cors_allow_credentials and "*" in self.cors_origin_list:

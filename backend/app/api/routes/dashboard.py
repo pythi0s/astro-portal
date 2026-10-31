@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,19 +9,27 @@ from sqlmodel import select
 
 from app.core.security import get_current_user
 from app.db.database import get_session
+from app.models.appointment import Appointment, AppointmentStatus
 from app.models.customer import Customer
+from app.models.customer_account import CustomerAccount
 from app.models.customer_solution import CustomerSolution
 from app.models.solution import Solution
 from app.models.user import User
 from app.models.visit import PaymentStatus, Visit
 from app.schemas.dashboard import (
     CategoryRevenueRow,
+    DailyAmount,
+    DashboardOverview,
     DashboardSummary,
     EarningsSummary,
+    OverviewAppointment,
+    OverviewCustomer,
+    OverviewFollowUp,
     PeriodBreakdown,
     RevenueByCategory,
     RevenueSummary,
 )
+from app.services.appointments import clinic_now, clinic_to_utc
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -284,4 +292,172 @@ async def dashboard_revenue_by_category(
         to_date=to_d,
         rows=rows,
         grand_total=grand_total.quantize(Decimal("0.01")),
+    )
+
+
+def _month_start(day: date) -> date:
+    return day.replace(day=1)
+
+
+@router.get("/overview", response_model=DashboardOverview)
+async def dashboard_overview(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> DashboardOverview:
+    """At-a-glance numbers for the home dashboard (appointments use clinic time)."""
+    now = clinic_now()
+    today = now.date()
+    day_start = datetime.combine(today, time.min)
+    month_start = _month_start(today)
+    prev_month_start = _month_start(month_start - timedelta(days=1))
+    # Same number of elapsed days last month, so the comparison is fair mid-month.
+    prev_month_cutoff = min(
+        prev_month_start + (today - month_start),
+        month_start - timedelta(days=1),
+    )
+    active = Appointment.status != AppointmentStatus.cancelled
+
+    async def count(*where) -> int:
+        result = await session.execute(select(func.count(Appointment.id)).where(active, *where))
+        return int(result.scalar() or 0)
+
+    appointments_today = await count(
+        Appointment.start_at >= day_start, Appointment.start_at < day_start + timedelta(days=1)
+    )
+    upcoming_rows = await session.execute(
+        select(Appointment, Customer)
+        .join(Customer, Customer.id == Appointment.customer_id)
+        .where(Appointment.status == AppointmentStatus.booked, Appointment.start_at >= now)
+        .order_by(Appointment.start_at)
+        .limit(1)
+    )
+    next_row = upcoming_rows.first()
+    remaining_today = await count(
+        Appointment.status == AppointmentStatus.booked,
+        Appointment.start_at >= now,
+        Appointment.start_at < day_start + timedelta(days=1),
+    )
+    upcoming_7_days = await count(
+        Appointment.status == AppointmentStatus.booked,
+        Appointment.start_at >= now,
+        Appointment.start_at < day_start + timedelta(days=8),
+    )
+    appointments_this_month = await count(
+        Appointment.start_at >= datetime.combine(month_start, time.min),
+    )
+    appointments_total = await count()
+
+    async def collected(start: date, end: date) -> Decimal:
+        result = await session.execute(
+            select(func.coalesce(func.sum(Visit.fees), 0)).where(
+                Visit.is_active == True,  # noqa: E712
+                Visit.payment_status == PaymentStatus.paid,
+                Visit.visit_date >= start,
+                Visit.visit_date <= end,
+            )
+        )
+        return Decimal(result.scalar() or 0)
+
+    collected_this_month = await collected(month_start, today)
+    collected_last_month = await collected(prev_month_start, prev_month_cutoff)
+    change = (
+        round(float((collected_this_month - collected_last_month) / collected_last_month) * 100, 1)
+        if collected_last_month > 0
+        else None
+    )
+
+    daily_result = await session.execute(
+        select(Visit.visit_date, func.coalesce(func.sum(Visit.fees), 0))
+        .where(
+            Visit.is_active == True,  # noqa: E712
+            Visit.payment_status == PaymentStatus.paid,
+            Visit.visit_date >= month_start,
+            Visit.visit_date <= today,
+        )
+        .group_by(Visit.visit_date)
+    )
+    by_day = {d: Decimal(v or 0) for d, v in daily_result.all()}
+    collected_daily = [
+        DailyAmount(day=d, amount=by_day.get(d, Decimal("0")))
+        for d in (month_start + timedelta(days=i) for i in range((today - month_start).days + 1))
+    ]
+
+    outstanding_result = await session.execute(
+        select(func.coalesce(func.sum(Visit.fees), 0)).where(
+            Visit.is_active == True,  # noqa: E712
+            Visit.payment_status.in_([PaymentStatus.pending, PaymentStatus.partial]),
+        )
+    )
+
+    new_customers_result = await session.execute(
+        select(func.count(Customer.id)).where(
+            Customer.created_at >= clinic_to_utc(datetime.combine(month_start, time.min))
+        )
+    )
+    linked = select(CustomerAccount.customer_id)
+    recent_result = await session.execute(
+        select(Customer, Customer.id.in_(linked))
+        .where(Customer.is_active == True)  # noqa: E712
+        .order_by(Customer.created_at.desc())
+        .limit(5)
+    )
+
+    follow_result = await session.execute(
+        select(Visit, Customer)
+        .join(Customer, Customer.id == Visit.customer_id)
+        .where(
+            Visit.is_active == True,  # noqa: E712
+            Visit.follow_up_date.is_not(None),
+            Visit.follow_up_date >= today - timedelta(days=7),
+            Visit.follow_up_date <= today + timedelta(days=7),
+        )
+        .order_by(Visit.follow_up_date)
+        .limit(8)
+    )
+
+    return DashboardOverview(
+        today=today,
+        appointments_today=appointments_today,
+        remaining_today=remaining_today,
+        next_appointment=(
+            OverviewAppointment(
+                id=next_row[0].id,
+                customer_id=next_row[1].id,
+                customer_name=next_row[1].name,
+                start_at=next_row[0].start_at,
+                end_at=next_row[0].end_at,
+                duration_minutes=next_row[0].duration_minutes,
+            )
+            if next_row
+            else None
+        ),
+        upcoming_7_days=upcoming_7_days,
+        appointments_this_month=appointments_this_month,
+        appointments_total=appointments_total,
+        collected_this_month=collected_this_month,
+        collected_last_month=collected_last_month,
+        collected_change_pct=change,
+        collected_daily=collected_daily,
+        outstanding_total=Decimal(outstanding_result.scalar() or 0),
+        new_customers_this_month=int(new_customers_result.scalar() or 0),
+        recent_customers=[
+            OverviewCustomer(
+                id=c.id,
+                name=c.name,
+                phone=c.phone,
+                created_at=c.created_at,
+                self_registered=bool(has_account),
+            )
+            for c, has_account in recent_result.all()
+        ],
+        follow_ups_due=[
+            OverviewFollowUp(
+                visit_id=v.id,
+                customer_id=c.id,
+                customer_name=c.name,
+                customer_phone=c.phone,
+                follow_up_date=v.follow_up_date,
+            )
+            for v, c in follow_result.all()
+        ],
     )

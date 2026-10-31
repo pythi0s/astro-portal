@@ -77,6 +77,7 @@ export function AutomationEditPage() {
               template_id: rule.data.template_id,
               channel: rule.data.channel,
               offset_days: rule.data.offset_days,
+              offset_hours: rule.data.offset_hours || 24,
               timezone: 'Asia/Kolkata',
               send_window_start_hour: rule.data.send_window_start_hour,
               send_window_end_hour: rule.data.send_window_end_hour,

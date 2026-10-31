@@ -103,7 +103,7 @@ export function Sheet({
         type="button"
         aria-label="Close overlay"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-slate-900/50 backdrop-blur-sm animate-[sheet-fade_150ms_ease-out]"
+        className="absolute inset-0 h-full w-full cursor-default bg-deep-900/50 backdrop-blur-sm animate-[sheet-fade_150ms_ease-out]"
       />
       <div
         ref={panelRef}
