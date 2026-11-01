@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#fff8e7" />
+    <meta name="theme-color" content="#1b1626" />
     <script>
-      // Apply the saved/OS theme before first paint to avoid a light flash.
+      // Apply the saved theme (dark by default) before first paint to avoid a light flash.
       (function () {
+        var dark = true;
         try {
-          var p = localStorage.getItem('astro_theme') || 'system';
-          var dark = p === 'dark' || (p === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-          if (dark) document.documentElement.classList.add('dark');
+          dark = localStorage.getItem('astro_theme') !== 'light';
         } catch (e) {}
+        if (dark) document.documentElement.classList.add('dark');
       })();
     </script>
     <link rel="icon" type="image/png" sizes="64x64" href="/brand/favicon-64.png" />

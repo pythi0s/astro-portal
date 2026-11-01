@@ -308,7 +308,7 @@ function TimeGrid({
                 {isToday && nowMinute >= gridStart && nowMinute <= endHour * 60 ? (
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-0 z-20 flex items-center"
+                    className="pointer-events-none absolute inset-x-0 z-20 flex -translate-y-1/2 items-center"
                     style={{ top: ((nowMinute - gridStart) / 60) * HOUR_PX }}
                   >
                     <span className="-ml-1.5 h-3 w-3 rounded-full bg-rose-500 shadow" />

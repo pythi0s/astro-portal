@@ -1,40 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/renderWithProviders';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
-import {
-  THEME_STORAGE_KEY,
-  initTheme,
-  nextPreference,
-  readPreference,
-  resolveTheme,
-  useThemeStore,
-} from '@/lib/theme';
-
-type Listener = () => void;
-
-function mockSystemTheme(initialDark: boolean) {
-  let dark = initialDark;
-  const listeners: Listener[] = [];
-  vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query: string) =>
-      ({
-        get matches() {
-          return query.includes('dark') ? dark : false;
-        },
-        media: query,
-        addEventListener: (_: string, l: Listener) => listeners.push(l),
-        removeEventListener: () => undefined,
-      }) as unknown as MediaQueryList,
-  );
-  return {
-    setDark(value: boolean) {
-      dark = value;
-      listeners.forEach((l) => l());
-    },
-  };
-}
+import { THEME_STORAGE_KEY, initTheme, nextPreference, readPreference, useThemeStore } from '@/lib/theme';
 
 const isDark = () => document.documentElement.classList.contains('dark');
 
@@ -42,42 +11,28 @@ describe('theme helpers', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove('dark');
-    useThemeStore.setState({ preference: 'system', resolved: 'light' });
+    useThemeStore.setState({ preference: 'dark' });
   });
-  afterEach(() => vi.restoreAllMocks());
 
-  it('defaults to following the system and ignores junk in storage', () => {
-    expect(readPreference()).toBe('system');
-    localStorage.setItem(THEME_STORAGE_KEY, 'purple');
-    expect(readPreference()).toBe('system');
-    localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+  it('defaults to dark, including legacy "system" and junk values', () => {
     expect(readPreference()).toBe('dark');
+    localStorage.setItem(THEME_STORAGE_KEY, 'system');
+    expect(readPreference()).toBe('dark');
+    localStorage.setItem(THEME_STORAGE_KEY, 'purple');
+    expect(readPreference()).toBe('dark');
+    localStorage.setItem(THEME_STORAGE_KEY, 'light');
+    expect(readPreference()).toBe('light');
   });
 
-  it('resolves preferences and cycles system → light → dark', () => {
-    expect(resolveTheme('system', true)).toBe('dark');
-    expect(resolveTheme('system', false)).toBe('light');
-    expect(resolveTheme('light', true)).toBe('light');
-    expect(nextPreference('system')).toBe('light');
+  it('toggles between dark and light only', () => {
+    expect(nextPreference('dark')).toBe('light');
     expect(nextPreference('light')).toBe('dark');
-    expect(nextPreference('dark')).toBe('system');
   });
 
-  it('follows OS changes live only while in system mode', () => {
-    const os = mockSystemTheme(false);
-    const stop = initTheme();
-    expect(isDark()).toBe(false);
-
-    os.setDark(true);
+  it('applies the stored preference on init', () => {
+    initTheme();
     expect(isDark()).toBe(true);
     expect(document.documentElement.style.colorScheme).toBe('dark');
-
-    useThemeStore.getState().setPreference('light');
-    expect(isDark()).toBe(false);
-    os.setDark(true);
-    expect(isDark()).toBe(false);
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-    stop();
   });
 });
 
@@ -85,26 +40,19 @@ describe('<ThemeSwitcher />', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove('dark');
-    useThemeStore.setState({ preference: 'system', resolved: 'light' });
+    useThemeStore.setState({ preference: 'dark' });
   });
-  afterEach(() => vi.restoreAllMocks());
 
-  it('cycles through system, light and dark and applies the class', async () => {
-    mockSystemTheme(false);
+  it('toggles dark → light → dark and persists the choice', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ThemeSwitcher />);
 
-    const button = screen.getByRole('button', { name: /theme: system \(light\)\. switch to light/i });
-    await user.click(button);
-    expect(screen.getByRole('button', { name: /theme: light\. switch to dark/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /theme: dark\. switch to light/i }));
     expect(isDark()).toBe(false);
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
 
-    await user.click(screen.getByRole('button', { name: /theme: light/i }));
-    expect(screen.getByRole('button', { name: /theme: dark\. switch to system/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /theme: light\. switch to dark/i }));
     expect(isDark()).toBe(true);
-
-    await user.click(screen.getByRole('button', { name: /theme: dark/i }));
-    expect(isDark()).toBe(false);
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('system');
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
   });
 });
